@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/main.png" alt="Mirror Shark main window" width="420">
+  <img src="docs/images/main.png" alt="Mirror Shark dashboard: your phones and every device on the Wi-Fi" width="460">
 </p>
 
 ## Features
@@ -23,13 +23,13 @@
 - **MP4 screen recording** without re-encoding, so it costs almost no CPU.
 - **Clipboard sync** both ways, plus screenshots and full-screen mode.
 - **Drag and drop**: drop an `.apk` to install it, or any file to send it to the phone's Download folder.
-- **Guided setup**: finds the phone on your network automatically (mDNS, plus a **Devices on Wi-Fi** view that lists everything on your network and checks which phones can be connected), one-click connect, plain-language error messages, automatic reconnect.
+- **Guided setup**: finds the phone on your network automatically (mDNS, plus a **Devices on your Wi-Fi** dashboard panel that lists everything on your network and checks which phones can be connected), one-click connect, plain-language error messages, automatic reconnect.
 - **Quality presets** (Balanced, Sharp, Smooth, Data saver, Custom) and an optional **desktop mode** with its own virtual display.
 - **Phone details** at a glance: model, Android version, battery.
 
-| Connect and settings | Devices on my Wi-Fi |
+| Connect and settings | No phone found yet |
 |---|---|
-| <img src="docs/images/settings.png" alt="Connect and settings panels" width="380"> | <img src="docs/images/scan.png" alt="Devices on my Wi-Fi dialog" width="380"> |
+| <img src="docs/images/settings.png" alt="Connect and settings panels" width="380"> | <img src="docs/images/empty.png" alt="Empty state with setup hints" width="380"> |
 
 ## Quick start
 

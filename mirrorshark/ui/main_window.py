@@ -13,7 +13,7 @@ from ..log import get_logger, log_file
 from ..server import ServerOptions, ServerSession
 from .help_dialog import HelpDialog
 from .mirror_view import MirrorWindow
-from .scan_dialog import ScanDialog
+from .network_panel import NetworkPanel
 from .tasks import run_task
 from .widgets import Collapsible, DeviceRow
 
@@ -46,6 +46,8 @@ class MainWindow(QWidget):
         self._mirrors: dict[str, MirrorWindow] = {}
         self._names: dict[str, str] = {}
         self._versions: dict[str, str] = {}
+        self._ip_serial: dict[str, str] = {}
+        self._hw: dict[str, str] = {}  # adb serial -> hardware serial (same phone over two transports)
         self._info: dict[str, dict] = {}
         self._auto_tried = False
         self._starting: set[str] = set()
@@ -71,6 +73,10 @@ class MainWindow(QWidget):
         root.addWidget(scroll, 1)
 
         self.body_layout.addWidget(self._build_devices())
+        self.network = NetworkPanel(self.adb)
+        self.network.connected.connect(self._network_connected)
+        self.network.mirror_requested.connect(self.mirror_ip)
+        self.body_layout.addWidget(self.network)
         self.connect_section = Collapsible("Connect a new phone", self._build_connect(), expanded=False)
         self.body_layout.addWidget(self.connect_section)
         self.body_layout.addWidget(Collapsible("Settings", self._build_settings(), expanded=False))
@@ -86,6 +92,7 @@ class MainWindow(QWidget):
         self.timer.timeout.connect(self.refresh)
         self.timer.start(5000)
         QTimer.singleShot(150, self.refresh)
+        QTimer.singleShot(1800, self.network.start_discovery)
 
     # -- construction ---------------------------------------------------------------
     def _build_header(self) -> QHBoxLayout:
@@ -130,15 +137,12 @@ class MainWindow(QWidget):
             "<b>No phone found yet.</b><br><br>"
             "1. On the phone open <i>Settings › System › Developer options › Wireless debugging</i> and turn it on.<br>"
             "2. Make sure the phone and this PC use the same Wi-Fi (or the phone's hotspot).<br>"
-            "3. First time? Open <i>Connect a new phone</i> below and pair with the code shown on the phone.")
+            "3. First time? Open <i>Connect a new phone</i> below and pair with the code shown on the phone.<br><br>"
+            "Everything on your Wi-Fi is listed in <i>Devices on your Wi-Fi</i> below.")
         self.empty.setWordWrap(True)
         self.empty.setObjectName("muted")
         self.empty.setTextFormat(Qt.RichText)
         lay.addWidget(self.empty)
-        self.empty_scan = QPushButton("Show devices on my Wi-Fi")
-        self.empty_scan.setObjectName("primary")
-        self.empty_scan.clicked.connect(self.open_scan)
-        lay.addWidget(self.empty_scan)
         return box
 
     def _build_connect(self) -> QWidget:
@@ -178,11 +182,7 @@ class MainWindow(QWidget):
         self.connect_btn.clicked.connect(self.do_connect)
         self.connect_addr.returnPressed.connect(self.do_connect)
         self.pair_code.returnPressed.connect(self.do_pair)
-        self.scan_btn = QPushButton("Devices on Wi-Fi")
-        self.scan_btn.setToolTip("Show every device on your Wi-Fi and connect to a phone")
-        self.scan_btn.clicked.connect(self.open_scan)
         crow.addWidget(self.connect_addr, 1)
-        crow.addWidget(self.scan_btn)
         crow.addWidget(self.connect_btn)
         lay.addLayout(crow)
         return box
@@ -316,6 +316,10 @@ class MainWindow(QWidget):
                     if d.serial not in self._names:
                         self._names[d.serial] = self.adb.model_name(d.serial)
                         self._versions[d.serial] = self.adb.android_version(d.serial)
+                        try:
+                            self._hw[d.serial] = self.adb.shell(d.serial, "getprop ro.serialno", timeout=8).strip()
+                        except Exception:  # noqa: BLE001 - optional, only used to hide duplicates
+                            self._hw[d.serial] = ""
                     self._info[d.serial] = self.adb.device_info(d.serial)
             return devices, services
 
@@ -342,10 +346,11 @@ class MainWindow(QWidget):
             if w:
                 w.deleteLater()
         seen = set()
+        ready_rows = []
         for d in devices:
             base = d.serial.split("._adb")[0]
             addr = addr_by_name.get(base)
-            ident = addr or d.serial
+            ident = self._hw.get(d.serial) or addr or d.serial   # same phone via ip:port and mDNS name -> one card
             if ident in seen:
                 continue
             seen.add(ident)
@@ -364,8 +369,18 @@ class MainWindow(QWidget):
             if d.serial in self._starting:
                 row.mirror_btn.setEnabled(False)
             self.rows_layout.addWidget(row)
+            ready_rows.append(d.state == "device")
+        self._ip_serial = {}
+        for d in devices:
+            if d.state != "device":
+                continue
+            addr = addr_by_name.get(d.serial.split("._adb")[0]) or (d.serial if ":" in d.serial else "")
+            ip = addr.rpartition(":")[0]
+            if ip and ip not in self._ip_serial:
+                self._ip_serial[ip] = d.serial
+        self.network.set_adb_state(set(self._ip_serial), {s.address.rpartition(":")[0]: int(s.address.rpartition(":")[2])
+                                                          for s in services if s.kind == "connect"})
         self.empty.setVisible(not devices)
-        self.empty_scan.setVisible(not devices)
         if not devices:
             self.connect_section.set_expanded(True)
             self._try_auto_reconnect()
@@ -376,7 +391,7 @@ class MainWindow(QWidget):
         if pairing and not self.pair_addr.text():
             self.pair_addr.setText(pairing[0].address)
             self.connect_section.set_expanded(True)
-        n = sum(1 for d in devices if d.state == "device")
+        n = sum(1 for r in ready_rows if r)
         self.say(f"{n} phone{'s' if n != 1 else ''} ready." if n else "Waiting for a phone…")
 
     def _fill_chips(self, layout: QHBoxLayout, services, target: QLineEdit) -> None:
@@ -434,18 +449,19 @@ class MainWindow(QWidget):
 
         run_task(lambda: self.adb.pair(addr, code), ok, bad)
 
-    def open_scan(self) -> None:
-        dlg = ScanDialog(self.adb, self)
+    def _network_connected(self, address: str) -> None:
+        self.connect_addr.setText(address)
+        self._save_settings()
+        self.say(f"Connected to {address}")
+        self._last_devices = None
+        self.refresh()
 
-        def connected(address: str) -> None:
-            self.connect_addr.setText(address)
-            self._save_settings()
-            self.say(f"Connected to {address}")
-            self._last_devices = None
-            self.refresh()
-
-        dlg.connected.connect(connected)
-        dlg.exec()
+    def mirror_ip(self, ip: str) -> None:
+        serial = self._ip_serial.get(ip)
+        if serial:
+            self.start_mirroring(serial)
+        else:
+            self.say("That phone is not connected to ADB yet. Press Refresh and try again.", error=True)
 
     def _try_auto_reconnect(self) -> None:
         """Once per launch, quietly try the last address that worked (phone may still have Wireless debugging on)."""
@@ -531,6 +547,7 @@ class MainWindow(QWidget):
 
     def closeEvent(self, e) -> None:
         self._save_settings()
+        self.network.shutdown()
         for w in list(self._mirrors.values()):
             w.close()
         super().closeEvent(e)

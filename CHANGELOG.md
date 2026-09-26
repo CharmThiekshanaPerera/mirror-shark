@@ -2,6 +2,16 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.5.0] - 2026-09-26
+
+### Changed
+- **Devices on your Wi-Fi is now part of the dashboard.** The main window shows every device on your network, always visible below *Your phones*. It scans on startup and refreshes itself every 90 seconds, checks phones for wireless debugging automatically, and lets you Connect, Check, or Mirror straight from a device's row. The separate scan window was removed.
+- A phone that is connected already shows **Connected** with a **Mirror** button in the Wi-Fi list.
+- Optional auto-connect: if exactly one phone has wireless debugging on and nothing is connected, Mirror Shark connects to it.
+
+### Fixed
+- The same phone could appear twice in *Your phones* (once by IP, once by its discovery name), and the "phones ready" count was wrong. It is now one card per physical phone.
+
 ## [1.4.0] - 2026-09-26
 
 ### Added

@@ -11,9 +11,12 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from mirrorshark.adb import Adb, Device, MdnsService  # noqa: E402
 from mirrorshark.theme import apply_theme  # noqa: E402
 from mirrorshark.ui.main_window import MainWindow  # noqa: E402
-from mirrorshark.ui.scan_dialog import ScanDialog  # noqa: E402
+from mirrorshark.scanner import NetDevice  # noqa: E402
+from mirrorshark.ui.network_panel import NetworkPanel  # noqa: E402
 
 MainWindow.refresh = lambda self: None  # never touch a real adb during screenshots
+NetworkPanel.start_discovery = lambda self: None  # ... or scan a real network
+NetworkPanel._enqueue = lambda self, ip: None
 app = QApplication([])
 apply_theme(app)
 w = MainWindow(Adb.__new__(Adb))
@@ -34,6 +37,18 @@ def shot(name):
 def step1():
     w._show_devices([Device("192.168.1.20:37361", "device", "")],
                     [MdnsService("adb-DEMO-abc", "connect", "192.168.1.20:37361")])
+    devices = [
+        NetDevice("192.168.1.20", "c6:c3:ce:4e:10:f6", "Pixel-7-Pro", "Android phone or tablet", "\U0001F4F1", True),
+        NetDevice("192.168.1.31", "ec:10:7b:d6:03:5d", "Galaxy-Tab-A8", "Android phone or tablet", "\U0001F4F1", True),
+        NetDevice("192.168.1.15", "3c:5a:b4:22:91:0e", "Living-Room-TV", "TV / streaming device", "\U0001F4FA", False),
+        NetDevice("192.168.1.1", "d8:d8:66:4d:34:05", "", "Router / gateway", "\U0001F4E1", False, is_gateway=True),
+        NetDevice("192.168.1.10", "", "MY-PC", "This PC", "\U0001F4BB", False, is_this_pc=True),
+    ]
+    w.network.set_adb_state({"192.168.1.20"}, {"192.168.1.20": 37361})
+    w.network._on_devices(devices)
+    w.network.rows["192.168.1.31"].set_state("off")
+    w.network._set_status("4 devices on your Wi-Fi.")
+    w.resize(660, 920)
     QTimer.singleShot(300, lambda: (shot("main.png"), step2()))
 
 
@@ -50,31 +65,7 @@ def step3():
     w.resize(660, 640)
     w._last_devices = None
     w._show_devices([], [])
-    QTimer.singleShot(400, lambda: (shot("empty.png"), step4()))
-
-
-def step4():
-    from mirrorshark.scanner import NetDevice
-    ScanDialog.start_discovery = lambda self: None   # demo only: no real scan
-    ScanDialog._enqueue = lambda self, ip: None
-    dlg = ScanDialog(w.adb, w)
-    dlg.resize(640, 600)
-    devices = [
-        NetDevice("192.168.1.20", "c6:c3:ce:4e:10:f6", "Pixel-7-Pro", "Android phone or tablet", "\U0001F4F1", True),
-        NetDevice("192.168.1.31", "ec:10:7b:d6:03:5d", "Galaxy-Tab-A8", "Android phone or tablet", "\U0001F4F1", True),
-        NetDevice("192.168.1.15", "3c:5a:b4:22:91:0e", "Living-Room-TV", "TV / streaming device", "\U0001F4FA", False),
-        NetDevice("192.168.1.1", "d8:d8:66:4d:34:05", "", "Router / gateway", "\U0001F4E1", False, is_gateway=True),
-        NetDevice("192.168.1.10", "", "MY-PC", "This PC", "\U0001F4BB", False, is_this_pc=True),
-    ]
-    dlg._on_devices(devices, {"192.168.1.20": 37361}, set())
-    dlg.rows["192.168.1.31"].set_state("off")
-    dlg._set_status("5 devices on your Wi-Fi. Wireless debugging is ON at 192.168.1.20:37361.")
-    dlg.bar.setRange(0, 1)
-    dlg.bar.setValue(1)
-    dlg.auto.setChecked(False)
-    dlg.stop_btn.setEnabled(False)
-    dlg.show()
-    QTimer.singleShot(500, lambda: (dlg.grab().save(str(out / "scan.png")), print("wrote scan.png"), dlg.done(0), app.quit()))
+    QTimer.singleShot(400, lambda: (shot("empty.png"), w.close(), app.quit()))
 
 
 QTimer.singleShot(500, step1)
