@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFormLayout, Q
 
 from .. import APP_ID, APP_NAME, __version__, theme
 from ..adb import Adb
+from .. import helper as helper_mod
 from ..errors import friendly
 from ..log import get_logger, log_file
 from ..server import ServerOptions, ServerSession
@@ -487,6 +488,26 @@ class MainWindow(QWidget):
         elif action == "install":
             files, _ = QFileDialog.getOpenFileNames(self, "Choose APK files to install", "", "Android packages (*.apk)")
             self._transfer(serial, files, install=True)
+        elif action == "helper":
+            self.install_helper(serial)
+
+    def install_helper(self, serial: str) -> None:
+        name = self._names.get(serial, serial)
+        self.say(f"Setting up Mirror Shark Helper on {name}…")
+
+        def ok(summary: str) -> None:
+            self.say(summary)
+            ip = next((i for i, s in self._ip_serial.items() if s == serial), None)
+            if ip:
+                self.network.probe_helper(ip)
+            QMessageBox.information(
+                self, APP_NAME,
+                f"{summary}\n\nOn the phone, allow notifications if Android asks. From now on, if Wireless debugging is "
+                "off, use “Ask phone to turn on” in Devices on your Wi-Fi: the phone shows a request, and when you tap "
+                "Accept, Wireless debugging is switched on automatically.\n\nAndroid may also ask “Allow wireless "
+                "debugging on this network?” the first time on a new Wi-Fi network. Tap Allow.")
+
+        run_task(lambda: helper_mod.install_helper(self.adb, serial), ok, lambda m: self.fail(f"Helper setup failed: {m}"))
 
     def _transfer(self, serial: str, files: list[str], install: bool) -> None:
         for f in files:

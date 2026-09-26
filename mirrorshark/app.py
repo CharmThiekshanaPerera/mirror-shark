@@ -28,6 +28,11 @@ def selftest() -> int:
         adb = Adb()
         devices = [d for d in adb.devices() if d.state == "device"]
         lines.append(f"adb: {adb.exe}")
+        from .helper import apk_path
+        apk = apk_path()
+        lines.append(f"helper apk: {apk} ({apk.stat().st_size:,} bytes)" if apk else "helper apk: MISSING")
+        if not apk:
+            raise RuntimeError("bundled helper app (MirrorSharkHelper.apk) not found")
         lines.append(f"devices: {[d.serial for d in devices]}")
         if not devices:
             raise RuntimeError("no device connected")

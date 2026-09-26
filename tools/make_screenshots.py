@@ -46,6 +46,8 @@ def step1():
     ]
     w.network.set_adb_state({"192.168.1.20"}, {"192.168.1.20": 37361})
     w.network._on_devices(devices)
+    from mirrorshark.helper import HelperInfo
+    w.network.rows["192.168.1.31"].set_helper(HelperInfo("Samsung Galaxy Tab A8", False, True, 1))
     w.network.rows["192.168.1.31"].set_state("off")
     w.network._set_status("4 devices on your Wi-Fi.")
     w.resize(660, 920)

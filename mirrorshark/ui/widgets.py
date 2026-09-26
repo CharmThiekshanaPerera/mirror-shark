@@ -28,7 +28,7 @@ class Badge(QLabel):
 class DeviceRow(QFrame):
     """One phone: name, address, status badge and a Mirror button."""
     mirror_clicked = Signal(str)     # serial
-    action_requested = Signal(str, str)  # serial, action: 'send' | 'install' | 'disconnect'
+    action_requested = Signal(str, str)  # serial, action: 'send' | 'install' | 'helper' | 'disconnect'
 
     def __init__(self, serial: str, name: str, subtitle: str, state: str):
         super().__init__()
@@ -63,6 +63,7 @@ class DeviceRow(QFrame):
         menu = QMenu(more)
         menu.addAction("Send files to phone…", lambda: self.action_requested.emit(self.serial, "send"))
         menu.addAction("Install APK…", lambda: self.action_requested.emit(self.serial, "install"))
+        menu.addAction("Set up phone helper…", lambda: self.action_requested.emit(self.serial, "helper"))
         if ":" in serial or serial.startswith("adb-"):  # wireless devices can be disconnected
             menu.addSeparator()
             menu.addAction("Disconnect", lambda: self.action_requested.emit(self.serial, "disconnect"))

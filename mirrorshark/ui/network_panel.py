@@ -7,6 +7,7 @@ import time
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import QCheckBox, QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 
+from .. import helper as helper_mod
 from .. import theme
 from ..adb import Adb
 from ..errors import friendly
@@ -17,8 +18,11 @@ from .widgets import Badge
 
 log = get_logger("network")
 
+HINT_OFF_HELPER = ("The Mirror Shark Helper app is on this phone. Press “Ask phone to turn on”: the phone shows a request, "
+                   "and when its owner taps Accept, Wireless debugging is switched on automatically.")
 HINT_OFF_PHONE = ("Wireless debugging is off or not reachable. On the phone: Settings › System › Developer options › "
-                  "Wireless debugging, turn it on and keep that screen open, then press Check again.")
+                  "Wireless debugging, turn it on and keep that screen open, then press Check again. Tip: install Mirror Shark "
+                  "Helper on this phone (connect it once, then More › Set up phone helper) to turn it on remotely next time.")
 HINT_OFF_OTHER = "No wireless debugging found on this device."
 AUTO_REFRESH_MS = 90_000
 
@@ -46,7 +50,7 @@ class DiscoverThread(QThread):
 class ProbeThread(QThread):
     """Checks devices one at a time for a wireless debugging port. Jobs arrive through enqueue()."""
     checking = Signal(str)
-    result = Signal(str, list)      # ip, [(port, kind)]
+    result = Signal(str, list, object)   # ip, [(port, kind)], HelperInfo or None
     progress = Signal(int, int)
 
     def __init__(self):
@@ -88,17 +92,19 @@ class ProbeThread(QThread):
                     break
                 log.warning("probe of %s failed: %s", ip, e)
                 found = []
-            self.result.emit(ip, [(f.port, f.kind) for f in found])
+            self.result.emit(ip, [(f.port, f.kind) for f in found], helper_mod.probe(ip))
 
 
 class NetRow(QFrame):
     check_clicked = Signal(str)     # ip
     connect_clicked = Signal(str)   # ip
     mirror_clicked = Signal(str)    # ip
+    request_clicked = Signal(str)   # ip
 
     def __init__(self, dev: NetDevice):
         super().__init__()
         self.dev = dev
+        self.helper = None
         self.port: int | None = None
         self.state = "unchecked"
         self.setObjectName("deviceRow")
@@ -120,8 +126,15 @@ class NetRow(QFrame):
         text.addWidget(title)
         text.addWidget(sub)
         top.addLayout(text, 1)
+        self.helper_badge = Badge("Helper ready", theme.GOOD)
+        self.helper_badge.setToolTip("Mirror Shark Helper is running on this phone, so you can ask it to turn on wireless debugging.")
+        self.helper_badge.hide()
+        top.addWidget(self.helper_badge)
         self.badge = Badge("", theme.MUTED)
         top.addWidget(self.badge)
+        self.request_btn = QPushButton("Ask phone to turn on")
+        self.request_btn.setObjectName("primary")
+        self.request_btn.clicked.connect(lambda: self.request_clicked.emit(self.dev.ip))
         self.check_btn = QPushButton("Check")
         self.check_btn.clicked.connect(lambda: self.check_clicked.emit(self.dev.ip))
         self.connect_btn = QPushButton("Connect")
@@ -130,15 +143,25 @@ class NetRow(QFrame):
         self.mirror_btn = QPushButton("Mirror")
         self.mirror_btn.setObjectName("primary")
         self.mirror_btn.clicked.connect(lambda: self.mirror_clicked.emit(self.dev.ip))
-        for b in (self.check_btn, self.connect_btn, self.mirror_btn):
-            top.addWidget(b)
+        # buttons sit on their own line so a row always fits, however narrow the window is
+        actions = QHBoxLayout()
+        actions.addStretch()
+        for b in (self.request_btn, self.check_btn, self.connect_btn, self.mirror_btn):
+            b.hide()
+            actions.addWidget(b)
         outer.addLayout(top)
+        outer.addLayout(actions)
         self.hint = QLabel("")
         self.hint.setObjectName("muted")
         self.hint.setWordWrap(True)
         self.hint.hide()
         outer.addWidget(self.hint)
         self.set_state("self" if dev.is_this_pc else "unchecked")
+
+    def set_helper(self, info) -> None:
+        self.helper = info
+        self.helper_badge.setVisible(info is not None)
+        self.set_state(self.state, self.port)
 
     def set_state(self, state: str, port: int | None = None) -> None:
         self.state = state
@@ -151,6 +174,7 @@ class NetRow(QFrame):
         self.connect_btn.setEnabled(state == "on")
         self.connect_btn.setText("Connecting…" if state == "connecting" else "Connect")
         self.mirror_btn.setVisible(state == "connected")
+        self.request_btn.setVisible(self.helper is not None and state in ("unchecked", "off"))
         if state == "self":
             self.badge.set("This PC", theme.MUTED)
         elif state == "unchecked":
@@ -163,9 +187,11 @@ class NetRow(QFrame):
             self.badge.set("Connecting…", theme.ACCENT)
         elif state == "connected":
             self.badge.set("Connected", theme.GOOD)
+        elif state == "requesting":
+            self.badge.set("Waiting for the phone…", theme.ACCENT)
         elif state == "off":
             self.badge.set("Debugging off", theme.WARN)
-            self.hint.setText(HINT_OFF_PHONE if self.dev.phone_like else HINT_OFF_OTHER)
+            self.hint.setText(HINT_OFF_HELPER if self.helper else HINT_OFF_PHONE if self.dev.phone_like else HINT_OFF_OTHER)
             self.hint.show()
 
 
@@ -183,6 +209,7 @@ class NetworkPanel(QFrame):
         self._memory: dict[str, tuple[str, int | None]] = {}   # ip -> ("off"|"on", port) from earlier checks
         self._auto_tried: set[str] = set()
         self._connecting = False
+        self._retry: set[str] = set()      # phones we just asked to enable: look again once if the port is not open yet
         self._probe: ProbeThread | None = None
         self._discover: DiscoverThread | None = None
         self._last_discovery = 0.0
@@ -291,6 +318,7 @@ class NetworkPanel(QFrame):
             row.check_clicked.connect(self.check_one)
             row.connect_clicked.connect(self.connect_ip)
             row.mirror_clicked.connect(self.mirror_requested)
+            row.request_clicked.connect(self.request_enable)
             self.rows[dev.ip] = row
             self.list_layout.addWidget(row)
             if dev.is_this_pc:
@@ -357,11 +385,18 @@ class NetworkPanel(QFrame):
         self.bar.setRange(0, total)
         self.bar.setValue(done)
 
-    def _on_result(self, ip: str, found: list) -> None:
+    def _on_result(self, ip: str, found: list, info=None) -> None:
         row = self.rows.get(ip)
+        if row:
+            row.set_helper(info)
         if row and row.state != "checking":
             return
         if row:
+            if not found and ip in self._retry:       # adbd needs a few seconds to open the port after being enabled
+                self._retry.discard(ip)
+                QTimer.singleShot(3000, lambda: self.check_one(ip))
+                return
+            self._retry.discard(ip)
             if found:
                 row.set_state("on", found[0][0])
                 self._memory[ip] = ("on", found[0][0])
@@ -375,6 +410,43 @@ class NetworkPanel(QFrame):
             self.bar.setRange(0, 1)
             self.bar.setValue(1)
             self.stop_btn.setEnabled(False)
+
+    # -- asking a phone to turn wireless debugging on ---------------------------------------------------------
+    def request_enable(self, ip: str) -> None:
+        row = self.rows.get(ip)
+        if not row or row.state == "requesting":
+            return
+        row.set_state("requesting")
+        name = row.dev.title
+        self._set_status(f"Request sent to {name}. Ask its owner to tap Accept on the phone (waiting up to "
+                         f"{int(helper_mod.REQUEST_WAIT)} seconds)…")
+        self.bar.setRange(0, 0)
+
+        def done(status: str) -> None:
+            self.bar.setRange(0, 1)
+            self.bar.setValue(1 if status == "enabled" else 0)
+            text = helper_mod.STATUS_TEXT.get(status, status)
+            if status == "enabled":
+                self._set_status(text + " Looking for the phone… (If it asks “Allow wireless debugging on this network?”, "
+                                 "tap Allow.)", good=True)
+                self._retry.add(ip)
+                QTimer.singleShot(2500, lambda: (row.set_state("unchecked"), self.check_one(ip)))
+            else:
+                row.set_state("off")
+                self._set_status(text, error=status in ("unreachable", "failed", "needs_manual"))
+
+        def failed(msg: str) -> None:
+            row.set_state("off")
+            self.bar.setRange(0, 1)
+            self._set_status(f"Request failed: {msg}", error=True)
+
+        run_task(lambda: helper_mod.request_enable(ip), done, failed)
+
+    def probe_helper(self, ip: str) -> None:
+        """Look for the helper app on one device (used after installing it on a connected phone)."""
+        row = self.rows.get(ip)
+        if row:
+            run_task(lambda: helper_mod.probe(ip, timeout=2.0), row.set_helper)
 
     # -- connecting ----------------------------------------------------------------------------------------
     def _maybe_auto_connect(self) -> None:

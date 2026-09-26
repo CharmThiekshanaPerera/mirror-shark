@@ -2,6 +2,17 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.6.0] - 2026-09-26
+
+### Added
+- **Ask a phone to turn on Wireless debugging.** For phones that have the new **Mirror Shark Helper** app, the *Devices on your Wi-Fi* list shows a "Helper ready" tag and an **Ask phone to turn on** button. The phone shows a notification ("<PC> wants to turn on Wireless debugging: Accept / Decline"). Only when its owner taps **Accept** does Wireless debugging switch on; Mirror Shark then finds the phone and connects to it automatically (if it was paired before). Declines back off (30 s, then 5 min after three in a row), and unanswered requests time out after 60 s.
+- **Mirror Shark Helper** Android app (source in `android-helper/`, built with `tools/build_helper.py`, bundled inside `MirrorShark.exe` and in the release zip). It runs a small listener on the local network and holds the permission to switch the setting on.
+- **Set up phone helper** in the *More* menu of a connected phone: installs the helper over ADB, gives it the permission and starts it.
+
+### Security notes
+- Nothing is changed without a tap on the phone. The helper never accepts on its own, and unanswered requests time out.
+- Android does not let a computer switch Wireless debugging on by itself, which is why the helper app and its one-time setup are needed.
+
 ## [1.5.0] - 2026-09-26
 
 ### Changed

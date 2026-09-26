@@ -27,6 +27,10 @@ Running the app or building the exe needs `adb.exe`, its DLLs and `scrcpy-server
 - Real-device behavior (video, touch, audio, recording) cannot be unit tested. Please say in your pull request what you tried on which phone and Android version. `dist\MirrorShark.exe --selftest` is a quick check for a build.
 - The bundled scrcpy server version must match `SERVER_VERSION`. If you upgrade the server, re-check the video/control/audio protocol.
 
+## Android helper app
+
+The phone-side helper lives in `android-helper/` (plain Java, no Gradle). Build it with `python tools/build_helper.py` (needs a JDK and the Android SDK with build-tools and the android-34 platform). It writes `assets/MirrorSharkHelper.apk`, which is committed so that builds and CI do not need the SDK. Rebuild and commit the APK when the helper's source changes, and keep the protocol in `mirrorshark/helper.py` and `HelperService.java` in sync.
+
 ## Pull requests
 
 1. Keep changes focused and match the surrounding code style.

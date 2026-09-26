@@ -22,6 +22,7 @@ if not exist %PY%.exe (
   --add-binary "%PT%\AdbWinUsbApi.dll;." ^
   --add-data "%PT%\scrcpy-server;." ^
   --add-data "docs\USER_GUIDE.md;docs" ^
+  --add-data "assets\MirrorSharkHelper.apk;assets" ^
   --exclude-module PySide6.QtWebEngineCore --exclude-module PySide6.QtWebEngineWidgets ^
   --exclude-module PySide6.Qt3DCore --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick ^
   --exclude-module PySide6.QtSql --exclude-module PySide6.QtCharts ^
@@ -33,6 +34,7 @@ if exist release rmdir /s /q release
 mkdir "%REL%\licenses"
 copy dist\MirrorShark.exe "%REL%\" >nul
 copy docs\USER_GUIDE.md "%REL%\USER_GUIDE.md" >nul
+copy assets\MirrorSharkHelper.apk "%REL%\MirrorSharkHelper.apk" >nul
 copy licenses\Apache-2.0.txt "%REL%\licenses\" >nul
 if exist "%PT%\NOTICE.txt" copy "%PT%\NOTICE.txt" "%REL%\licenses\platform-tools-NOTICE.txt" >nul
 copy THIRD_PARTY_NOTICES.md "%REL%\licenses\" >nul

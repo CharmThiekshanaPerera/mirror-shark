@@ -55,6 +55,29 @@ If a phone shows **ON** but connecting fails with a message about pairing, it ha
 
 Only your own local network is scanned, and only the ADB service is checked. Phones that use a private (random) Wi-Fi address may show without a name.
 
+### Turning on Wireless debugging from the PC (Mirror Shark Helper)
+
+Android does not allow a computer to switch Wireless debugging on by itself. To make it easy anyway, Mirror Shark has a small companion app for the phone, **Mirror Shark Helper**. With it you can ask a phone to turn Wireless debugging on, and the phone's owner just taps **Accept**.
+
+**One-time setup per phone**
+1. Connect the phone the normal way (Wireless debugging on, or by USB cable).
+2. In *Your phones*, open **More** on the phone's card and choose **Set up phone helper...**. Mirror Shark installs the helper, gives it the permission to switch Wireless debugging on, and starts it.
+3. On the phone, allow notifications if Android asks.
+
+**Later, when Wireless debugging is off** (after a restart, or on a new Wi-Fi network)
+1. Open Mirror Shark. In **Devices on your Wi-Fi** the phone shows a green **Helper ready** tag and a **Debugging off** badge.
+2. Press **Ask phone to turn on**.
+3. The phone shows a notification: *"<your PC> wants to turn on Wireless debugging"* with **Accept** and **Decline**. Tap **Accept**.
+4. Wireless debugging switches on, Mirror Shark finds the phone and connects (if it was paired before). If Android asks "Allow wireless debugging on this network?", tap **Allow**. Then press **Mirror**.
+
+**Good to know**
+- The phone always asks. Nothing is switched on without a tap, and an unanswered request times out after 60 seconds.
+- If a request is declined, the phone ignores new requests for 30 seconds (5 minutes after three declines in a row), so a stranger's device on the Wi-Fi cannot keep prompting you.
+- Only accept requests from your own computer. The notification shows the computer's name and address.
+- The helper shows a small "Mirror Shark Helper is on" notification while it waits. Open the app on the phone to switch it off, or uninstall it any time.
+- A phone that has never had the helper installed cannot be asked remotely. Turn Wireless debugging on by hand once (or connect it by cable) and run **Set up phone helper**.
+- The helper only listens on your local network. You need to pair the phone with this PC once, as usual, before Mirror Shark can connect to it.
+
 ## Everyday use
 
 1. Make sure Wireless debugging is on and the phone is on the same network as the PC.
