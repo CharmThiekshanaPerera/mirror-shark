@@ -45,6 +45,8 @@ class DeviceRow(QFrame):
         self.name.setObjectName("sectionTitle")
         self.sub = QLabel(subtitle)
         self.sub.setObjectName("muted")
+        self.sub.setWordWrap(True)  # long details wrap instead of widening the window
+        self.sub.setMinimumWidth(0)
         text.addWidget(self.name)
         text.addWidget(self.sub)
         lay.addLayout(text, 1)

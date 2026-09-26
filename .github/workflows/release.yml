@@ -1,0 +1,64 @@
+name: Release
+
+# Builds PhoneLink.exe on a clean Windows runner. Push a tag like v1.2.0 to publish it as a GitHub Release,
+# or run the workflow manually to just produce the zip as a build artifact.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SCRCPY_VERSION: "4.1"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: phonelink
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Fetch platform-tools and the scrcpy server
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://dl.google.com/android/repository/platform-tools-latest-windows.zip -OutFile pt.zip
+          Expand-Archive pt.zip -DestinationPath pt
+          $u = "https://github.com/Genymobile/scrcpy/releases/download/v$env:SCRCPY_VERSION/scrcpy-win64-v$env:SCRCPY_VERSION.zip"
+          Invoke-WebRequest $u -OutFile sc.zip
+          Expand-Archive sc.zip -DestinationPath sc
+          Copy-Item pt/platform-tools/adb.exe, pt/platform-tools/AdbWinApi.dll, pt/platform-tools/AdbWinUsbApi.dll, pt/platform-tools/NOTICE.txt .
+          $sc = Get-ChildItem sc -Directory | Select-Object -First 1
+          Copy-Item "$($sc.FullName)/scrcpy-server" .
+          if (Test-Path "$($sc.FullName)/LICENSE") { Copy-Item "$($sc.FullName)/LICENSE" ./LICENSE.txt }
+          Get-ChildItem adb.exe, scrcpy-server | Select-Object Name, Length
+
+      - name: Build (tests, icon, single exe, zip)
+        shell: cmd
+        run: phonelink\build.bat
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhoneLink-win64
+          path: phonelink/release/*.zip
+
+      - name: Publish to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $zip = (Get-ChildItem phonelink/release/*.zip | Select-Object -First 1).FullName
+          gh release view $tag --repo ${{ github.repository }} 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo ${{ github.repository }} --title "PhoneLink $($tag.TrimStart('v'))" --generate-notes
+          }
+          gh release upload $tag $zip --repo ${{ github.repository }} --clobber

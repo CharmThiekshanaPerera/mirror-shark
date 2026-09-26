@@ -1,22 +1,90 @@
 # PhoneLink
 
-Windows desktop app that mirrors and controls an Android phone over wireless ADB (Wi-Fi). Python + PySide6 (Qt) + PyAV; it drives the scrcpy 4.1 server on the phone and implements the client side itself (`phonelink/protocol.py`, `server.py`, `video.py`, `control.py`).
+[![CI](https://github.com/CharmThiekshanaPerera/phonelink/actions/workflows/ci.yml/badge.svg)](https://github.com/CharmThiekshanaPerera/phonelink/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/CharmThiekshanaPerera/phonelink)](https://github.com/CharmThiekshanaPerera/phonelink/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%2F11-informational)
 
-- **Users:** see [docs/USER_GUIDE.md](docs/USER_GUIDE.md). Run `PhoneLink.exe`.
-- **Build:** first put `adb.exe`, `AdbWinApi.dll`, `AdbWinUsbApi.dll`, `LICENSE.txt`, `NOTICE.txt` (Android platform-tools) and `scrcpy-server` (scrcpy 4.1) in the folder above this one - they are not stored in this repo. Then `build.bat` runs the tests, generates the icon and writes `dist\PhoneLink.exe` (single file) plus `release\PhoneLink-<version>-win64.zip`. It bundles `adb.exe`, its DLLs and `scrcpy-server` from the parent platform-tools folder. The scrcpy server version must match `protocol.SERVER_VERSION` (currently 4.1).
-- **Run from source:** `run.bat` (creates `.venv` on first run) or `.venv\Scripts\python main.py`.
-- **Tests:** `.venv\Scripts\python -m pytest`.
-- **Smoke test a build:** `dist\PhoneLink.exe --selftest` connects to the first device, decodes a frame and writes `%LOCALAPPDATA%\PhoneLink\selftest.txt`.
+**Mirror and control your Android phone from your Windows PC over Wi-Fi.** No cable, no root, no extra tools to install: PhoneLink is a single `.exe`.
 
-## Layout
+<p align="center">
+  <img src="docs/images/main.png" alt="PhoneLink main window" width="420">
+</p>
+
+## Features
+
+- **Wireless screen mirroring** at up to 60 fps with low latency (H.264 hardware-encoded on the phone).
+- **Full control** with mouse and keyboard: tap, swipe, scroll, type, back/home/recents, rotate, notifications, power.
+- **Phone sound on your PC** (Android 11+), with a mute button.
+- **MP4 screen recording** without re-encoding, so it costs almost no CPU.
+- **Clipboard sync** both ways, plus screenshots and full-screen mode.
+- **Drag and drop**: drop an `.apk` to install it, or any file to send it to the phone's Download folder.
+- **Guided setup**: finds the phone on your network automatically, one-click connect, plain-language error messages, automatic reconnect.
+- **Quality presets** (Balanced, Sharp, Smooth, Data saver, Custom) and an optional **desktop mode** with its own virtual display.
+- **Phone details** at a glance: model, Android version, battery.
+
+| Connect and settings | No phone found yet |
+|---|---|
+| <img src="docs/images/settings.png" alt="Connect and settings panels" width="380"> | <img src="docs/images/empty.png" alt="Empty state with setup hints" width="380"> |
+
+## Quick start
+
+1. Download `PhoneLink-<version>-win64.zip` from the [latest release](https://github.com/CharmThiekshanaPerera/phonelink/releases/latest), unzip it and run `PhoneLink.exe`.
+2. On the phone: **Settings > System > Developer options > Wireless debugging** and turn it on. (Enable Developer options first by tapping **Build number** seven times in *About phone*.)
+3. Phone and PC on the same Wi-Fi (or the PC on the phone's hotspot). First time only: pair with the code shown under *Pair device with pairing code* using **Connect a new phone** in PhoneLink.
+4. Your phone shows up under **Your phones**. Click **Mirror**.
+
+The full walkthrough, controls, settings and troubleshooting are in the **[User Guide](docs/USER_GUIDE.md)** (also available in the app under *Help*).
+
+> The exe is not code-signed, so Windows SmartScreen may warn the first time. Choose *More info > Run anyway*.
+
+## Requirements
+
+- Windows 10 or 11 (64-bit)
+- Android 11 or newer (Wireless debugging). Phone sound needs Android 11+, keeping sound on the phone as well needs 13+.
+
+## How it works
+
+PhoneLink is a client for the open-source [scrcpy](https://github.com/Genymobile/scrcpy) server. It pushes the server to the phone over ADB, opens a tunnel and then does everything on the PC side itself:
+
+```
+phone (scrcpy server) --H.264 video--> video.py (PyAV decode) --> Qt window
+                      --raw PCM audio-> audio.py (QAudioSink)
+PC input events ---> control.py --touch/keys/clipboard--> phone
+adb.py: pairing, connect, mDNS discovery, file/APK transfer
+```
 
 | Path | Purpose |
 |---|---|
-| `phonelink/adb.py` | adb wrapper, bundled tool installer, mDNS discovery |
-| `phonelink/server.py` | pushes/starts the scrcpy server, opens video + control sockets |
+| `phonelink/adb.py` | adb wrapper, bundled-tool installer, mDNS discovery |
+| `phonelink/server.py` | pushes/starts the scrcpy server, opens video, audio and control sockets |
 | `phonelink/protocol.py` | wire format encode/decode (unit tested) |
-| `phonelink/video.py` | packet reader + H.264 decode |
-| `phonelink/control.py` | touch/key/clipboard messages |
+| `phonelink/video.py`, `audio.py`, `recorder.py` | decoding, playback, MP4 recording |
+| `phonelink/control.py` | touch, key, clipboard messages |
 | `phonelink/ui/` | main window, mirror window, help dialog, widgets |
-| `phonelink/theme.py`, `errors.py`, `log.py` | styling + icon, friendly error text, logging |
-| `docs/USER_GUIDE.md` | end-user guide (also shown in-app under Help) |
+| `phonelink/theme.py`, `errors.py`, `log.py` | styling and icon, friendly error text, logging |
+| `docs/USER_GUIDE.md` | end-user guide |
+
+## Build from source
+
+Requires Python 3.12+ on Windows.
+
+1. Put these files in the folder **above** this repository's folder (they are not stored here): `adb.exe`, `AdbWinApi.dll`, `AdbWinUsbApi.dll` from the Android [platform-tools](https://developer.android.com/tools/releases/platform-tools), and `scrcpy-server` from [scrcpy 4.1](https://github.com/Genymobile/scrcpy/releases/tag/v4.1). Optionally add `LICENSE.txt` and `NOTICE.txt` to be included in the release zip.
+2. Run:
+
+```powershell
+.\build.bat        # runs tests, makes the icon, builds dist\PhoneLink.exe and release\PhoneLink-<version>-win64.zip
+.\run.bat          # or run from source (creates .venv on first run)
+```
+
+Tests: `.venv\Scripts\python -m pytest`. Smoke test a build against a connected phone: `dist\PhoneLink.exe --selftest` (writes `%LOCALAPPDATA%\PhoneLink\selftest.txt`).
+
+The scrcpy server version must match `SERVER_VERSION` in `phonelink/protocol.py` (currently 4.1).
+
+## Contributing
+
+Bug reports and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). For security issues see [SECURITY.md](SECURITY.md). Changes are listed in the [changelog](CHANGELOG.md).
+
+## License
+
+PhoneLink is released under the [MIT License](LICENSE). It includes and depends on third-party software under their own licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

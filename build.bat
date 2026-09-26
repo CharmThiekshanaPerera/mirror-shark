@@ -33,8 +33,10 @@ if exist release rmdir /s /q release
 mkdir "%REL%\licenses"
 copy dist\PhoneLink.exe "%REL%\" >nul
 copy docs\USER_GUIDE.md "%REL%\USER_GUIDE.md" >nul
-copy "%PT%\LICENSE.txt" "%REL%\licenses\" >nul
-copy "%PT%\NOTICE.txt" "%REL%\licenses\platform-tools-NOTICE.txt" >nul
+if exist "%PT%\LICENSE.txt" copy "%PT%\LICENSE.txt" "%REL%\licenses\" >nul
+if exist "%PT%\NOTICE.txt" copy "%PT%\NOTICE.txt" "%REL%\licenses\platform-tools-NOTICE.txt" >nul
+copy THIRD_PARTY_NOTICES.md "%REL%\licenses\" >nul
+copy LICENSE "%REL%\licenses\PhoneLink-LICENSE.txt" >nul
 powershell -NoProfile -Command "Compress-Archive -Path '%REL%\*' -DestinationPath 'release\PhoneLink-%VER%-win64.zip' -Force"
 echo.
 echo Built dist\PhoneLink.exe and release\PhoneLink-%VER%-win64.zip

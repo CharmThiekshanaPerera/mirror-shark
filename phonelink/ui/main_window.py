@@ -61,6 +61,7 @@ class MainWindow(QWidget):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         body = QWidget()
         self.body_layout = QVBoxLayout(body)
         self.body_layout.setContentsMargins(0, 0, 8, 0)
