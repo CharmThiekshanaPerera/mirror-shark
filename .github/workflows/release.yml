@@ -36,7 +36,6 @@ jobs:
           Copy-Item pt/platform-tools/adb.exe, pt/platform-tools/AdbWinApi.dll, pt/platform-tools/AdbWinUsbApi.dll, pt/platform-tools/NOTICE.txt .
           $sc = Get-ChildItem sc -Directory | Select-Object -First 1
           Copy-Item "$($sc.FullName)/scrcpy-server" .
-          if (Test-Path "$($sc.FullName)/LICENSE") { Copy-Item "$($sc.FullName)/LICENSE" ./LICENSE.txt }
           Get-ChildItem adb.exe, scrcpy-server | Select-Object Name, Length
 
       - name: Build (tests, icon, single exe, zip)
@@ -44,7 +43,7 @@ jobs:
         run: phonelink\build.bat
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: PhoneLink-win64
           path: phonelink/release/*.zip

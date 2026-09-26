@@ -2,6 +2,11 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.1.2] - 2026-09-26
+
+### Fixed
+- Release zip now includes the Apache-2.0 license text (scrcpy, Platform-Tools) alongside the notices.
+
 ## [1.1.1] - 2026-09-26
 
 ### Fixed

@@ -1,8 +1,8 @@
 # UTF-8
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 1, 1, 0),
-    prodvers=(1, 1, 1, 0),
+    filevers=(1, 1, 2, 0),
+    prodvers=(1, 1, 2, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,12 +16,12 @@ VSVersionInfo(
         '040904B0',
         [StringStruct('CompanyName', 'PhoneLink'),
          StringStruct('FileDescription', 'PhoneLink - Android screen mirroring over Wi-Fi'),
-         StringStruct('FileVersion', '1.1.1'),
+         StringStruct('FileVersion', '1.1.2'),
          StringStruct('InternalName', 'PhoneLink'),
          StringStruct('LegalCopyright', 'Includes scrcpy (Apache-2.0) and Android platform-tools'),
          StringStruct('OriginalFilename', 'PhoneLink.exe'),
          StringStruct('ProductName', 'PhoneLink'),
-         StringStruct('ProductVersion', '1.1.1')])
+         StringStruct('ProductVersion', '1.1.2')])
     ]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]

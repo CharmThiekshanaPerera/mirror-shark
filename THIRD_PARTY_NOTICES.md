@@ -15,4 +15,4 @@ PhoneLink's own code is MIT licensed (see `LICENSE`). The release build bundles 
 
 - **FFmpeg build inside PyAV.** The FFmpeg libraries shipped in PyAV's Windows wheels can include GPL-licensed codecs such as libx264. PhoneLink only decodes video and copies the phone's H.264 stream into MP4 files; it does not use any of the GPL encoders. If you redistribute the exe outside your own use, review the licenses of the exact wheel you build with, or use a PyAV build with an LGPL-only FFmpeg.
 - **Qt (LGPL-3.0).** Qt is dynamically linked inside the exe. Recipients must be able to replace it, which is possible by building PhoneLink from source with this repository.
-- **scrcpy and Platform-Tools license texts** are included in the `licenses` folder of each release zip.
+- **License texts.** The Apache-2.0 text (scrcpy and Platform-Tools), the Platform-Tools NOTICE and PhoneLink's own MIT license are in the `licenses` folder of each release zip.
