@@ -2,6 +2,15 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.4.0] - 2026-09-26
+
+### Added
+- **Devices on my Wi-Fi**: the scan window now lists *every* device on your network, not only phones with wireless debugging on. Each shows its name, IP and MAC address, a guess at its type (phone, router, computer, TV, printer) and whether wireless debugging is on. Phone-like devices are checked automatically, any device can be checked with one click, and already-connected phones are marked. Devices with debugging off show how to turn it on.
+- Devices that announce themselves (mDNS) are shown as ready instantly, without a port scan.
+
+### Changed
+- The buttons are now "Devices on Wi-Fi" and "Show devices on my Wi-Fi".
+
 ## [1.3.0] - 2026-09-26
 
 ### Added

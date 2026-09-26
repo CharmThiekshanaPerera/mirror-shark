@@ -7,7 +7,9 @@
 """
 import asyncio
 import ipaddress
+import concurrent.futures
 import re
+import socket
 import struct
 import subprocess
 import threading
@@ -157,12 +159,8 @@ def _ping(ip: str) -> None:
         pass
 
 
-def discover_hosts(addr: ipaddress.IPv4Address, net: ipaddress.IPv4Network,
-                   cancel: threading.Event) -> list[tuple[str, bool]]:
-    """Ping sweep the subnet (this also fills the ARP table), then read the live hosts from ARP.
-
-    Returns (ip, looks_like_a_phone) pairs, phone-like devices first.
-    """
+def sweep_hosts(addr: ipaddress.IPv4Address, net: ipaddress.IPv4Network, cancel: threading.Event) -> list[tuple[str, str]]:
+    """Ping sweep the subnet (this also fills the ARP table), then read the live hosts from ARP as (ip, mac)."""
     targets = [str(h) for h in net.hosts() if h != addr][:MAX_HOSTS]
     with ThreadPoolExecutor(max_workers=128) as pool:
         futures = [pool.submit(_ping, ip) for ip in targets]
@@ -178,7 +176,106 @@ def discover_hosts(addr: ipaddress.IPv4Address, net: ipaddress.IPv4Network,
         out = ""
     hosts = [(ip, mac) for ip, mac in parse_arp(out) if ipaddress.ip_address(ip) in net and ip != str(addr)]
     hosts.sort(key=lambda h: (not is_randomized_mac(h[1]), ipaddress.ip_address(h[0])))  # phones first
-    return [(ip, is_randomized_mac(mac)) for ip, mac in hosts]
+    return hosts
+
+
+def discover_hosts(addr: ipaddress.IPv4Address, net: ipaddress.IPv4Network,
+                   cancel: threading.Event) -> list[tuple[str, bool]]:
+    """Returns (ip, looks_like_a_phone) pairs, phone-like devices first."""
+    return [(ip, is_randomized_mac(mac)) for ip, mac in sweep_hosts(addr, net, cancel)]
+
+
+# --- device list for the UI ---------------------------------------------------------------------
+ANDROID_HINTS = ("android", "pixel", "galaxy", "sm-", "oneplus", "redmi", "xiaomi", "poco", "huawei", "honor", "oppo",
+                 "vivo", "realme", "moto", "nokia", "samsung", "sony", "xperia", "tecno", "infinix", "lenovo-tab")
+APPLE_HINTS = ("iphone", "ipad", "macbook", "imac", "apple")
+TV_HINTS = ("tv", "roku", "chromecast", "bravia", "firestick", "fire-tv", "shield")
+PC_HINTS = ("desktop-", "laptop-", "-pc", "pc-", "win", "thinkpad", "dell", "hp-")
+PRINTER_HINTS = ("printer", "epson", "canon", "brother", "laserjet")
+
+
+@dataclass
+class NetDevice:
+    ip: str
+    mac: str
+    hostname: str
+    label: str
+    icon: str
+    phone_like: bool            # worth checking automatically for wireless debugging
+    is_gateway: bool = False
+    is_this_pc: bool = False
+
+    @property
+    def title(self) -> str:
+        return self.hostname or self.ip
+
+
+def classify(hostname: str, mac: str, is_gateway: bool) -> tuple[str, str, bool]:
+    """Guess what a device is from its name and MAC address: (label, icon, worth_checking_for_adb)."""
+    name = (hostname or "").lower()
+    if is_gateway:
+        return "Router / gateway", "📡", False
+    if any(h in name for h in ANDROID_HINTS):
+        return "Android phone or tablet", "📱", True
+    if any(h in name for h in APPLE_HINTS):
+        return "Apple device (no ADB)", "🍎", False
+    if any(h in name for h in PRINTER_HINTS):
+        return "Printer", "🖨", False
+    if any(h in name for h in TV_HINTS):
+        return "TV / streaming device", "📺", False
+    if any(h in name for h in PC_HINTS):
+        return "Computer", "💻", False
+    if mac and is_randomized_mac(mac):
+        return "Phone or tablet (private Wi-Fi address)", "📱", True
+    return "Device", "❓", False
+
+
+def default_gateways() -> set[str]:
+    """Default gateway addresses from the routing table (numeric output, works in any Windows language)."""
+    try:
+        out = subprocess.run(["route", "print", "-4"], capture_output=True, text=True, creationflags=CREATE_NO_WINDOW,
+                             timeout=10, encoding="utf-8", errors="replace").stdout
+    except (subprocess.SubprocessError, OSError):
+        return set()
+    return set(re.findall(r"^\s*0\.0\.0\.0\s+0\.0\.0\.0\s+(\d+\.\d+\.\d+\.\d+)\s", out, re.MULTILINE))
+
+
+def resolve_hostnames(ips: list[str], wait: float = 4.0) -> dict[str, str]:
+    """Reverse-lookup names (the router usually knows DHCP clients by name, e.g. 'Pixel-7-Pro')."""
+    names: dict[str, str] = {}
+
+    def look(ip: str) -> None:
+        try:
+            names[ip] = socket.gethostbyaddr(ip)[0].split(".")[0]
+        except OSError:
+            pass
+
+    pool = ThreadPoolExecutor(max_workers=32)
+    futures = [pool.submit(look, ip) for ip in ips]
+    concurrent.futures.wait(futures, timeout=wait)
+    pool.shutdown(wait=False, cancel_futures=True)
+    return dict(names)
+
+
+def discover_devices(cancel: threading.Event, on_status: Callable[[str], None] = lambda s: None) -> list[NetDevice]:
+    """Every device currently on the local network(s), with a best-guess type. Blocking; run it in a thread."""
+    devices: list[NetDevice] = []
+    gateways = default_gateways()
+    for addr, net in local_subnets():
+        on_status(f"Looking for devices on {net} \u2026")
+        hosts = sweep_hosts(addr, net, cancel)
+        on_status("Reading device names \u2026")
+        names = resolve_hostnames([ip for ip, _ in hosts])
+        me = NetDevice(str(addr), "", socket.gethostname(), "This PC", "\U0001F4BB", False, is_this_pc=True)
+        found = []
+        for ip, mac in hosts:
+            is_gw = ip in gateways
+            label, icon, phone_like = classify(names.get(ip, ""), mac, is_gw)
+            found.append(NetDevice(ip, mac.replace("-", ":"), names.get(ip, ""), label, icon, phone_like, is_gw))
+        # phones first, then the rest by address; this PC last
+        found.sort(key=lambda d: (not d.phone_like, d.is_gateway, ipaddress.ip_address(d.ip)))
+        devices += found + [me]
+    return devices
 
 
 # --- full scan --------------------------------------------------------------------------------

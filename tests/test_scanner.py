@@ -77,3 +77,26 @@ def test_scan_can_be_cancelled():
 def test_found_address():
     assert scanner.Found("192.168.8.185", 34305, "wireless").address == "192.168.8.185:34305"
     assert ipaddress.ip_address("192.168.8.185") in ipaddress.ip_network("192.168.8.0/24")
+
+
+def test_classify_devices():
+    assert scanner.classify("Pixel-7-Pro", "c6-c3-ce-4e-10-f6", False)[2] is True
+    assert scanner.classify("android-6049c1bf7df875a9", "ec-10-7b-d6-03-5d", False)[0] == "Android phone or tablet"
+    assert scanner.classify("", "d8-d8-66-4d-34-05", True)[0] == "Router / gateway"
+    assert scanner.classify("", "ba-f1-7b-19-3e-f6", False)[2] is True          # unnamed, private MAC -> phone-like
+    assert scanner.classify("Someones-iPhone", "ba-f1-7b-19-3e-f6", False)[2] is False
+    assert scanner.classify("", "d8-d8-66-4d-34-05", False)[0] == "Device"
+
+
+def test_discover_devices_lists_everything(monkeypatch):
+    net = ipaddress.ip_network("192.168.8.0/24")
+    monkeypatch.setattr(scanner, "local_subnets", lambda: [(ipaddress.IPv4Address("192.168.8.143"), net)])
+    monkeypatch.setattr(scanner, "default_gateways", lambda: {"192.168.8.1"})
+    monkeypatch.setattr(scanner, "sweep_hosts", lambda a, n, c: [("192.168.8.185", "c6-c3-ce-4e-10-f6"),
+                                                                 ("192.168.8.1", "d8-d8-66-4d-34-05"),
+                                                                 ("192.168.8.50", "ec-10-7b-d6-03-5d")])
+    monkeypatch.setattr(scanner, "resolve_hostnames", lambda ips, wait=4.0: {"192.168.8.185": "Pixel-7-Pro"})
+    devs = scanner.discover_devices(threading.Event())
+    assert [d.ip for d in devs] == ["192.168.8.185", "192.168.8.50", "192.168.8.1", "192.168.8.143"]
+    assert devs[0].title == "Pixel-7-Pro" and devs[0].phone_like
+    assert devs[2].is_gateway and devs[3].is_this_pc

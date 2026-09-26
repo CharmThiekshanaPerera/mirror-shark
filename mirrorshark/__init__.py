@@ -1,5 +1,5 @@
 """Mirror Shark: desktop client for Android screen mirroring and control over wireless ADB."""
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 APP_NAME = "Mirror Shark"      # shown to the user
 APP_ID = "MirrorShark"          # folders, registry key, lock file
