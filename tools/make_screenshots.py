@@ -8,9 +8,9 @@ sys.path.insert(0, str(ROOT))
 from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from phonelink.adb import Adb, Device, MdnsService  # noqa: E402
-from phonelink.theme import apply_theme  # noqa: E402
-from phonelink.ui.main_window import MainWindow  # noqa: E402
+from mirrorshark.adb import Adb, Device, MdnsService  # noqa: E402
+from mirrorshark.theme import apply_theme  # noqa: E402
+from mirrorshark.ui.main_window import MainWindow  # noqa: E402
 
 MainWindow.refresh = lambda self: None  # never touch a real adb during screenshots
 app = QApplication([])

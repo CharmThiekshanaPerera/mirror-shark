@@ -1,4 +1,4 @@
-"""Small reusable widgets for the PhoneLink UI."""
+"""Small reusable widgets for the Mirror Shark UI."""
 from PySide6.QtCore import QPropertyAnimation, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QMenu, QPushButton, QToolButton,
                                QVBoxLayout, QWidget)

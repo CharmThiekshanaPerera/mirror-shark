@@ -1,4 +1,4 @@
-"""Application logging to %LOCALAPPDATA%\\PhoneLink\\logs and a crash handler."""
+"""Application logging to %LOCALAPPDATA%\\MirrorShark\\logs and a crash handler."""
 import logging
 import os
 import sys
@@ -6,12 +6,12 @@ import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from . import APP_NAME, __version__
+from . import APP_ID, APP_NAME, __version__
 
 
 def data_dir() -> Path:
     base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-    d = Path(base) / APP_NAME
+    d = Path(base) / APP_ID
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -19,11 +19,11 @@ def data_dir() -> Path:
 def log_file() -> Path:
     d = data_dir() / "logs"
     d.mkdir(parents=True, exist_ok=True)
-    return d / "phonelink.log"
+    return d / "mirrorshark.log"
 
 
 def setup_logging() -> logging.Logger:
-    logger = logging.getLogger("phonelink")
+    logger = logging.getLogger("mirrorshark")
     if logger.handlers:
         return logger
     logger.setLevel(logging.INFO)
@@ -41,4 +41,4 @@ def setup_logging() -> logging.Logger:
 
 
 def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(f"phonelink.{name}")
+    return logging.getLogger(f"mirrorshark.{name}")

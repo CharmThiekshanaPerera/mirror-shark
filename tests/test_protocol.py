@@ -1,6 +1,6 @@
 import struct
 
-from phonelink import protocol as p
+from mirrorshark import protocol as p
 
 
 def test_session_header():

@@ -1,10 +1,10 @@
-# Contributing to PhoneLink
+# Contributing to Mirror Shark
 
 Thanks for helping. Bug reports, ideas and pull requests are all welcome.
 
 ## Reporting a bug
 
-Open an issue with the **Bug report** template. The most useful details are your phone model and Android version, how the phone and PC are connected, the PhoneLink version (Help > About) and the end of the log (Help > Open log folder > `phonelink.log`).
+Open an issue with the **Bug report** template. The most useful details are your phone model and Android version, how the phone and PC are connected, the Mirror Shark version (Help > About) and the end of the log (Help > Open log folder > `mirrorshark.log`).
 
 ## Development setup
 
@@ -21,10 +21,10 @@ Running the app or building the exe needs `adb.exe`, its DLLs and `scrcpy-server
 
 ## Project notes
 
-- The wire format lives in `phonelink/protocol.py` and is covered by unit tests. If you change it, add a test.
-- Anything that blocks (adb calls, sockets) must stay off the UI thread: use `run_task` from `phonelink/ui/tasks.py`.
-- User-facing errors go through `phonelink/errors.py` so messages stay in plain language.
-- Real-device behavior (video, touch, audio, recording) cannot be unit tested. Please say in your pull request what you tried on which phone and Android version. `dist\PhoneLink.exe --selftest` is a quick check for a build.
+- The wire format lives in `mirrorshark/protocol.py` and is covered by unit tests. If you change it, add a test.
+- Anything that blocks (adb calls, sockets) must stay off the UI thread: use `run_task` from `mirrorshark/ui/tasks.py`.
+- User-facing errors go through `mirrorshark/errors.py` so messages stay in plain language.
+- Real-device behavior (video, touch, audio, recording) cannot be unit tested. Please say in your pull request what you tried on which phone and Android version. `dist\MirrorShark.exe --selftest` is a quick check for a build.
 - The bundled scrcpy server version must match `SERVER_VERSION`. If you upgrade the server, re-check the video/control/audio protocol.
 
 ## Pull requests

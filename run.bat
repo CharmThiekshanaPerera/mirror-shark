@@ -1,8 +1,8 @@
 @echo off
-rem Starts PhoneLink: the built exe if present, otherwise from source (creates the venv on first run).
+rem Starts Mirror Shark: the built exe if present, otherwise from source (creates the venv on first run).
 cd /d "%~dp0"
-if exist dist\PhoneLink.exe (
-  start "" "dist\PhoneLink.exe"
+if exist dist\MirrorShark.exe (
+  start "" "dist\MirrorShark.exe"
   exit /b 0
 )
 if not exist .venv\Scripts\pythonw.exe (

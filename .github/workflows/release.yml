@@ -1,6 +1,6 @@
 name: Release
 
-# Builds PhoneLink.exe on a clean Windows runner. Push a tag like v1.2.0 to publish it as a GitHub Release,
+# Builds MirrorShark.exe on a clean Windows runner. Push a tag like v1.2.0 to publish it as a GitHub Release,
 # or run the workflow manually to just produce the zip as a build artifact.
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          path: phonelink
+          path: mirrorshark
 
       - uses: actions/setup-python@v6
         with:
@@ -40,13 +40,13 @@ jobs:
 
       - name: Build (tests, icon, single exe, zip)
         shell: cmd
-        run: phonelink\build.bat
+        run: mirrorshark\build.bat
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: PhoneLink-win64
-          path: phonelink/release/*.zip
+          name: MirrorShark-win64
+          path: mirrorshark/release/*.zip
 
       - name: Publish to the GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -55,9 +55,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ github.ref_name }}"
-          $zip = (Get-ChildItem phonelink/release/*.zip | Select-Object -First 1).FullName
+          $zip = (Get-ChildItem mirrorshark/release/*.zip | Select-Object -First 1).FullName
           gh release view $tag --repo ${{ github.repository }} 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo ${{ github.repository }} --title "PhoneLink $($tag.TrimStart('v'))" --generate-notes
+            gh release create $tag --repo ${{ github.repository }} --title "Mirror Shark $($tag.TrimStart('v'))" --generate-notes
           }
           gh release upload $tag $zip --repo ${{ github.repository }} --clobber

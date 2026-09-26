@@ -1,5 +1,5 @@
 @echo off
-rem Builds the release:  dist\PhoneLink.exe  (single file)  and  release\PhoneLink-<version>-win64.zip
+rem Builds the release:  dist\MirrorShark.exe  (single file)  and  release\MirrorShark-<version>-win64.zip
 rem adb + scrcpy-server are bundled from the platform-tools folder one level up.
 setlocal
 cd /d "%~dp0"
@@ -14,8 +14,8 @@ if not exist %PY%.exe (
 %PY% -m pytest -q || exit /b 1
 %PY% tools\make_icon.py || exit /b 1
 
-%PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name PhoneLink ^
-  --icon assets\phonelink.ico ^
+%PY% -m PyInstaller --noconfirm --clean --onefile --windowed --name MirrorShark ^
+  --icon assets\mirrorshark.ico ^
   --version-file tools\version_info.txt ^
   --add-binary "%PT%\adb.exe;." ^
   --add-binary "%PT%\AdbWinApi.dll;." ^
@@ -27,16 +27,16 @@ if not exist %PY%.exe (
   --exclude-module PySide6.QtSql --exclude-module PySide6.QtCharts ^
   main.py || exit /b 1
 
-for /f "delims=" %%v in ('%PY% -c "import phonelink;print(phonelink.__version__)"') do set VER=%%v
-set REL=release\PhoneLink-%VER%-win64
+for /f "delims=" %%v in ('%PY% -c "import mirrorshark;print(mirrorshark.__version__)"') do set VER=%%v
+set REL=release\MirrorShark-%VER%-win64
 if exist release rmdir /s /q release
 mkdir "%REL%\licenses"
-copy dist\PhoneLink.exe "%REL%\" >nul
+copy dist\MirrorShark.exe "%REL%\" >nul
 copy docs\USER_GUIDE.md "%REL%\USER_GUIDE.md" >nul
 copy licenses\Apache-2.0.txt "%REL%\licenses\" >nul
 if exist "%PT%\NOTICE.txt" copy "%PT%\NOTICE.txt" "%REL%\licenses\platform-tools-NOTICE.txt" >nul
 copy THIRD_PARTY_NOTICES.md "%REL%\licenses\" >nul
-copy LICENSE "%REL%\licenses\PhoneLink-LICENSE.txt" >nul
-powershell -NoProfile -Command "Compress-Archive -Path '%REL%\*' -DestinationPath 'release\PhoneLink-%VER%-win64.zip' -Force"
+copy LICENSE "%REL%\licenses\MirrorShark-LICENSE.txt" >nul
+powershell -NoProfile -Command "Compress-Archive -Path '%REL%\*' -DestinationPath 'release\MirrorShark-%VER%-win64.zip' -Force"
 echo.
-echo Built dist\PhoneLink.exe and release\PhoneLink-%VER%-win64.zip
+echo Built dist\MirrorShark.exe and release\MirrorShark-%VER%-win64.zip

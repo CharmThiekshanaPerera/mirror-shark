@@ -1,5 +1,5 @@
-from phonelink.adb import Adb
-from phonelink.errors import friendly
+from mirrorshark.adb import Adb
+from mirrorshark.errors import friendly
 
 
 class FakeAdb(Adb):

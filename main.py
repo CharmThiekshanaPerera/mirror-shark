@@ -1,5 +1,5 @@
 import sys
 
-from phonelink.app import main
+from mirrorshark.app import main
 
 sys.exit(main())

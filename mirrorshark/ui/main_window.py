@@ -6,7 +6,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
                                QMenu, QMessageBox, QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget)
 
-from .. import APP_NAME, __version__, theme
+from .. import APP_ID, APP_NAME, __version__, theme
 from ..adb import Adb
 from ..errors import friendly
 from ..log import get_logger, log_file
@@ -41,7 +41,7 @@ class MainWindow(QWidget):
     def __init__(self, adb: Adb):
         super().__init__()
         self.adb = adb
-        self.settings = QSettings(APP_NAME, APP_NAME)
+        self.settings = QSettings(APP_ID, APP_ID)
         self._mirrors: dict[str, MirrorWindow] = {}
         self._names: dict[str, str] = {}
         self._versions: dict[str, str] = {}
@@ -205,7 +205,7 @@ class MainWindow(QWidget):
         self.on_top = QCheckBox("Keep the mirror window on top")
         self.audio = QCheckBox("Play the phone's sound on this PC (Android 11+)")
         self.audio_dup = QCheckBox("Keep the sound playing on the phone as well (Android 13+)")
-        self.auto_reconnect = QCheckBox("Reconnect to the last phone when PhoneLink starts")
+        self.auto_reconnect = QCheckBox("Reconnect to the last phone when Mirror Shark starts")
         self.desktop = QCheckBox("Desktop mode - open a separate virtual desktop on the phone (Android 14+)")
         self.desktop_size = QLineEdit()
         self.desktop_size.setPlaceholderText("Width x height / dpi, e.g. 1920x1080/240")

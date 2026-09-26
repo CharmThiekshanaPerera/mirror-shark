@@ -67,33 +67,75 @@ QMessageBox {{ background: {BG}; }}
 
 
 def make_pixmap(size: int = 256) -> QPixmap:
-    """Draw the app icon: a rounded gradient tile with a phone and mirror waves."""
+    """Draw the app icon: a shark fin cutting through the water, mirrored in its own reflection."""
+    import math
+
     pm = QPixmap(size, size)
     pm.fill(Qt.transparent)
     p = QPainter(pm)
     p.setRenderHint(QPainter.Antialiasing)
-    s = size
-    grad = QLinearGradient(0, 0, s, s)
-    grad.setColorAt(0, QColor("#5b9bff"))
-    grad.setColorAt(1, QColor("#7a4dff"))
+    s = float(size)
+
     tile = QPainterPath()
     tile.addRoundedRect(QRectF(s * .04, s * .04, s * .92, s * .92), s * .22, s * .22)
-    p.fillPath(tile, grad)
-    # phone body
-    body = QRectF(s * .34, s * .18, s * .32, s * .64)
-    p.setPen(QPen(QColor("white"), s * .035))
-    p.setBrush(QColor(255, 255, 255, 40))
-    p.drawRoundedRect(body, s * .06, s * .06)
-    p.setPen(Qt.NoPen)
-    p.setBrush(QColor("white"))
-    p.drawRoundedRect(QRectF(s * .45, s * .21, s * .10, s * .014), s * .007, s * .007)
-    # mirror waves
+    bg = QLinearGradient(0, 0, 0, s)
+    bg.setColorAt(0.0, QColor("#0a2350"))
+    bg.setColorAt(0.55, QColor("#0d5a8c"))
+    bg.setColorAt(1.0, QColor("#1bbcc9"))
+    p.fillPath(tile, bg)
+    p.setClipPath(tile)
+
+    # mirror glint (two soft diagonal streaks)
+    p.setPen(QPen(QColor(255, 255, 255, 34), s * .07, Qt.SolidLine, Qt.FlatCap))
+    p.drawLine(int(s * .06), int(s * .50), int(s * .50), int(s * .06))
+    p.setPen(QPen(QColor(255, 255, 255, 20), s * .035, Qt.SolidLine, Qt.FlatCap))
+    p.drawLine(int(s * .06), int(s * .64), int(s * .64), int(s * .06))
+
+    wy = s * .56  # waterline
+
+    def fin(flip: bool = False) -> QPainterPath:
+        def pt(x, y):
+            return (x * s, (2 * wy - y * s) if flip else y * s)
+        path = QPainterPath()
+        # dorsal fin: convex leading edge, tip leaning back, deeply concave trailing edge
+        path.moveTo(*pt(.24, .56))
+        path.cubicTo(*pt(.30, .36), *pt(.43, .21), *pt(.58, .11))
+        path.cubicTo(*pt(.49, .29), *pt(.57, .44), *pt(.66, .56))
+        path.closeSubpath()
+        # tail tip, a little further back
+        path.moveTo(*pt(.74, .56))
+        path.cubicTo(*pt(.78, .49), *pt(.83, .42), *pt(.89, .35))
+        path.cubicTo(*pt(.85, .45), *pt(.85, .51), *pt(.86, .56))
+        path.closeSubpath()
+        return path
+
+    # reflection: the fin flipped below the waterline, cut into fading ripple bands
+    bands = 7
+    band_h = (s - wy) / bands
+    for i in range(bands):
+        top = wy + i * band_h
+        p.save()
+        p.setClipRect(QRectF(0, top + band_h * .12, s, band_h * .76), Qt.IntersectClip)
+        p.translate(math.sin(i * 1.4) * s * .018 * (0.4 + i / bands), 0)
+        p.fillPath(fin(flip=True), QColor(255, 255, 255, int(150 * (1 - i / bands))))
+        p.restore()
+
+    # the fin itself
+    p.fillPath(fin(), QColor("white"))
+
+    # waterline with a gentle wave
+    wave = QPainterPath()
+    wave.moveTo(s * .10, wy)
+    x = s * .10
+    step = s * .10
+    up = True
+    while x < s * .90 - 1:
+        wave.quadTo(x + step / 2, wy + (-s * .012 if up else s * .012), x + step, wy)
+        x += step
+        up = not up
+    p.setPen(QPen(QColor(255, 255, 255, 235), s * .022, Qt.SolidLine, Qt.RoundCap))
     p.setBrush(Qt.NoBrush)
-    for i, r in enumerate((.10, .16)):
-        pen = QPen(QColor(255, 255, 255, 230 - i * 70), s * .028, Qt.SolidLine, Qt.RoundCap)
-        p.setPen(pen)
-        rect = QRectF(s * .66 - s * r, s * .5 - s * r, s * r * 2, s * r * 2)
-        p.drawArc(rect, -45 * 16, 90 * 16)
+    p.drawPath(wave)
     p.end()
     return pm
 

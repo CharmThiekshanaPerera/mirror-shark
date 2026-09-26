@@ -1,10 +1,10 @@
-"""Entry point: python -m phonelink.app"""
+"""Entry point: python -m mirrorshark.app"""
 import sys
 
 from PySide6.QtCore import QLockFile
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from . import APP_NAME
+from . import APP_ID, APP_NAME
 from .adb import Adb
 from .log import data_dir, get_logger, setup_logging
 from .theme import apply_theme
@@ -78,10 +78,10 @@ def main() -> int:
         return selftest()
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
-    app.setOrganizationName(APP_NAME)
+    app.setOrganizationName(APP_ID)
     apply_theme(app)
 
-    lock = QLockFile(str(data_dir() / "phonelink.lock"))
+    lock = QLockFile(str(data_dir() / "mirrorshark.lock"))
     lock.setStaleLockTime(0)
     if not lock.tryLock(100):
         QMessageBox.information(None, APP_NAME, f"{APP_NAME} is already running.")

@@ -1,6 +1,6 @@
 # Third-party notices
 
-PhoneLink's own code is MIT licensed (see `LICENSE`). The release build bundles or depends on the following. Each keeps its own license.
+Mirror Shark's own code is MIT licensed (see `LICENSE`). The release build bundles or depends on the following. Each keeps its own license.
 
 | Component | Use | License |
 |---|---|---|
@@ -13,6 +13,6 @@ PhoneLink's own code is MIT licensed (see `LICENSE`). The release build bundles 
 
 ## Notes for redistribution
 
-- **FFmpeg build inside PyAV.** The FFmpeg libraries shipped in PyAV's Windows wheels can include GPL-licensed codecs such as libx264. PhoneLink only decodes video and copies the phone's H.264 stream into MP4 files; it does not use any of the GPL encoders. If you redistribute the exe outside your own use, review the licenses of the exact wheel you build with, or use a PyAV build with an LGPL-only FFmpeg.
-- **Qt (LGPL-3.0).** Qt is dynamically linked inside the exe. Recipients must be able to replace it, which is possible by building PhoneLink from source with this repository.
-- **License texts.** The Apache-2.0 text (scrcpy and Platform-Tools), the Platform-Tools NOTICE and PhoneLink's own MIT license are in the `licenses` folder of each release zip.
+- **FFmpeg build inside PyAV.** The FFmpeg libraries shipped in PyAV's Windows wheels can include GPL-licensed codecs such as libx264. Mirror Shark only decodes video and copies the phone's H.264 stream into MP4 files; it does not use any of the GPL encoders. If you redistribute the exe outside your own use, review the licenses of the exact wheel you build with, or use a PyAV build with an LGPL-only FFmpeg.
+- **Qt (LGPL-3.0).** Qt is dynamically linked inside the exe. Recipients must be able to replace it, which is possible by building Mirror Shark from source with this repository.
+- **License texts.** The Apache-2.0 text (scrcpy and Platform-Tools), the Platform-Tools NOTICE and Mirror Shark's own MIT license are in the `licenses` folder of each release zip.

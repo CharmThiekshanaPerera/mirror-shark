@@ -178,7 +178,7 @@ class MirrorWindow(QWidget):
         self._last_frames = 0
         self.audio: AudioPlayer | None = None
         self.recorder: Recorder | None = None
-        self.setWindowTitle(f"PhoneLink - {session.device_name}")
+        self.setWindowTitle(f"Mirror Shark - {session.device_name}")
         self.setAcceptDrops(True)
         if always_on_top:
             self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
@@ -286,7 +286,7 @@ class MirrorWindow(QWidget):
             self.toast.show_message("Nothing to record yet")
             return
         movies = QStandardPaths.writableLocation(QStandardPaths.MoviesLocation) or str(Path.home())
-        folder = Path(movies) / "PhoneLink"
+        folder = Path(movies) / "MirrorShark"
         folder.mkdir(parents=True, exist_ok=True)
         self.recorder = Recorder(folder / time.strftime("phone_%Y%m%d_%H%M%S.mp4"))
         self.video.recorder = self.recorder
@@ -320,7 +320,7 @@ class MirrorWindow(QWidget):
         if err:
             self.toast.show_message(f"Recording failed: {err}", 6000)
         else:
-            self.toast.show_message(f"Saved {Path(path).name} in Videos\\PhoneLink", 4500)
+            self.toast.show_message(f"Saved {Path(path).name} in Videos\\MirrorShark", 4500)
 
     def reconnect(self) -> None:
         if self._reconnecting or self._closing:
@@ -381,7 +381,7 @@ class MirrorWindow(QWidget):
         log.info("video stopped: %s", reason)
         if self.recorder is not None:
             self._stop_recording()
-        self.setWindowTitle(f"PhoneLink - {self.session.device_name} (disconnected)")
+        self.setWindowTitle(f"Mirror Shark - {self.session.device_name} (disconnected)")
         self.view.show_lost("Connection to the phone was lost.\nCheck that the phone is awake, on the same "
                             "network and Wireless debugging is on.")
 
@@ -413,11 +413,11 @@ class MirrorWindow(QWidget):
             self.toast.show_message("Nothing to capture yet")
             return
         pics = QStandardPaths.writableLocation(QStandardPaths.PicturesLocation) or str(Path.home())
-        folder = Path(pics) / "PhoneLink"
+        folder = Path(pics) / "MirrorShark"
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / time.strftime("phone_%Y%m%d_%H%M%S.png")
         if img.save(str(path)):
-            self.toast.show_message(f"Saved {path.name} to Pictures\\PhoneLink", 3200)
+            self.toast.show_message(f"Saved {path.name} to Pictures\\MirrorShark", 3200)
         else:
             self.toast.show_message("Could not save screenshot")
 

@@ -12,9 +12,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: PhoneLink version
+      label: Mirror Shark version
       description: Help > About
-      placeholder: "1.1.1"
+      placeholder: "1.2.0"
     validations:
       required: true
   - type: input
@@ -43,5 +43,5 @@ body:
     id: log
     attributes:
       label: Log
-      description: "End of `%LOCALAPPDATA%\\PhoneLink\\logs\\phonelink.log` (Help > Open log folder). Remove anything private."
+      description: "End of `%LOCALAPPDATA%\\MirrorShark\\logs\\mirrorshark.log` (Help > Open log folder). Remove anything private."
       render: text
