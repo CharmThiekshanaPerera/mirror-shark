@@ -35,8 +35,22 @@ Mirror Shark is a single file, `MirrorShark.exe`. There is nothing to install an
 ### 4. Connect
 
 1. Go back one screen on the phone so that you see the main **Wireless debugging** screen. It shows **IP address & Port**. This port is *different* from the pairing port.
-2. In Mirror Shark, under **Step 2 - Connect**, click the "Found on network" button (or type the address) and click **Connect**.
+2. In Mirror Shark, under **Step 2 - Connect**, click the "Found on network" button (or type the address) and click **Connect**. If nothing is found on its own, click **Scan network** instead (see below).
 3. Your phone now appears under **Your phones** with a green **Connected** badge.
+
+### Let Mirror Shark find the phone: Scan network
+
+If the phone does not show up by itself (this happens on some routers and on phone hotspots), click **Scan network**. You do not need to know the IP address or port.
+
+1. Turn on **Wireless debugging** on the phone and stay on its screen.
+2. Click **Scan network** (in *Connect a new phone*, or in the "No phone found" box on the main window).
+3. Mirror Shark looks at the devices on your network and checks each one for Wireless debugging. This usually takes 5 to 20 seconds. When it finds your phone it connects automatically (untick *Connect automatically* to choose yourself).
+
+Extra buttons: **Scan all devices** keeps checking after the first phone (useful with several phones), and **Deep scan** checks every port (a few minutes) if the normal scan finds nothing.
+
+If the scan finds the phone but connecting fails with a message about pairing, the phone has not been paired with this PC yet. Do **Step 1 - Pair** once, then scan again.
+
+The scan only talks to devices on your own local network and only checks for the ADB service.
 
 ## Everyday use
 
@@ -104,7 +118,7 @@ Your choices are remembered.
 
 | Problem | What to try |
 |---|---|
-| No phone appears | Check that Wireless debugging is **on**, the phone and PC are on the same network, and the phone screen is awake. Click **Refresh**. Some public or guest Wi-Fi networks block device-to-device traffic. Use the phone's hotspot instead. |
+| No phone appears | Click **Scan network**. Also check that Wireless debugging is **on**, the phone and PC are on the same network, and the phone screen is awake. Click **Refresh**. Some public or guest Wi-Fi networks block device-to-device traffic. Use the phone's hotspot instead. |
 | "Connection refused" | The port changed. Read the current IP:port on the phone's Wireless debugging screen and connect again. |
 | Pairing fails | Open **Pair device with pairing code** again and use the new port and code. Enter the code quickly. |
 | Phone shows "Not authorised" or "Offline" | Unlock the phone and tap **Allow**. Otherwise turn Wireless debugging off and on, then connect again. |

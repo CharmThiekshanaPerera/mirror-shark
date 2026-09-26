@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from mirrorshark.adb import Adb, Device, MdnsService  # noqa: E402
 from mirrorshark.theme import apply_theme  # noqa: E402
 from mirrorshark.ui.main_window import MainWindow  # noqa: E402
+from mirrorshark.ui.scan_dialog import ScanDialog  # noqa: E402
 
 MainWindow.refresh = lambda self: None  # never touch a real adb during screenshots
 app = QApplication([])
@@ -49,7 +50,20 @@ def step3():
     w.resize(660, 640)
     w._last_devices = None
     w._show_devices([], [])
-    QTimer.singleShot(400, lambda: (shot("empty.png"), app.quit()))
+    QTimer.singleShot(400, lambda: (shot("empty.png"), step4()))
+
+
+def step4():
+    ScanDialog.start_scan = lambda self, *a, **k: None  # demo only: no real scan
+    dlg = ScanDialog(w.adb, w)
+    dlg.auto.setChecked(False)
+    dlg.stop_btn.setEnabled(False)
+    dlg.bar.setRange(0, 1)
+    dlg.bar.setValue(1)
+    dlg.status.setText("Scan finished: 1 phone found.")
+    dlg._on_found("192.168.1.20", 37361, "wireless")
+    dlg.show()
+    QTimer.singleShot(400, lambda: (dlg.grab().save(str(out / "scan.png")), print("wrote scan.png"), app.quit()))
 
 
 QTimer.singleShot(500, step1)

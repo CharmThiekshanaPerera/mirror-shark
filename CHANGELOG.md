@@ -2,6 +2,12 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.3.0] - 2026-09-26
+
+### Added
+- **Scan network**: finds phones with Wireless debugging turned on without needing the IP or port, and connects to them. Useful when automatic discovery (mDNS) is blocked, for example on hotspots and some routers. It sweeps the local network, probes Android's port range on each device (phone-like devices first) and confirms the port with the ADB handshake. Options: connect automatically, scan all devices, deep scan (all ports).
+- Scan buttons in *Connect a new phone* and in the empty "no phone found" state.
+
 ## [1.2.0] - 2026-09-26
 
 ### Changed

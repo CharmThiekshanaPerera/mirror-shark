@@ -13,6 +13,7 @@ from ..log import get_logger, log_file
 from ..server import ServerOptions, ServerSession
 from .help_dialog import HelpDialog
 from .mirror_view import MirrorWindow
+from .scan_dialog import ScanDialog
 from .tasks import run_task
 from .widgets import Collapsible, DeviceRow
 
@@ -134,6 +135,10 @@ class MainWindow(QWidget):
         self.empty.setObjectName("muted")
         self.empty.setTextFormat(Qt.RichText)
         lay.addWidget(self.empty)
+        self.empty_scan = QPushButton("Scan network for my phone")
+        self.empty_scan.setObjectName("primary")
+        self.empty_scan.clicked.connect(self.open_scan)
+        lay.addWidget(self.empty_scan)
         return box
 
     def _build_connect(self) -> QWidget:
@@ -173,7 +178,11 @@ class MainWindow(QWidget):
         self.connect_btn.clicked.connect(self.do_connect)
         self.connect_addr.returnPressed.connect(self.do_connect)
         self.pair_code.returnPressed.connect(self.do_pair)
+        self.scan_btn = QPushButton("Scan network")
+        self.scan_btn.setToolTip("Find phones with Wireless debugging on automatically")
+        self.scan_btn.clicked.connect(self.open_scan)
         crow.addWidget(self.connect_addr, 1)
+        crow.addWidget(self.scan_btn)
         crow.addWidget(self.connect_btn)
         lay.addLayout(crow)
         return box
@@ -356,6 +365,7 @@ class MainWindow(QWidget):
                 row.mirror_btn.setEnabled(False)
             self.rows_layout.addWidget(row)
         self.empty.setVisible(not devices)
+        self.empty_scan.setVisible(not devices)
         if not devices:
             self.connect_section.set_expanded(True)
             self._try_auto_reconnect()
@@ -423,6 +433,19 @@ class MainWindow(QWidget):
             self.fail(m)
 
         run_task(lambda: self.adb.pair(addr, code), ok, bad)
+
+    def open_scan(self) -> None:
+        dlg = ScanDialog(self.adb, self)
+
+        def connected(address: str) -> None:
+            self.connect_addr.setText(address)
+            self._save_settings()
+            self.say(f"Connected to {address}")
+            self._last_devices = None
+            self.refresh()
+
+        dlg.connected.connect(connected)
+        dlg.exec()
 
     def _try_auto_reconnect(self) -> None:
         """Once per launch, quietly try the last address that worked (phone may still have Wireless debugging on)."""

@@ -71,11 +71,38 @@ def selftest() -> int:
     return code
 
 
+def scantest() -> int:
+    """Headless check of the network scanner: writes what it found to %LOCALAPPDATA%\\MirrorShark\\scantest.txt."""
+    import threading
+    import time
+
+    from PySide6.QtCore import QCoreApplication
+
+    from .scanner import scan_network
+
+    app = QCoreApplication(sys.argv)  # noqa: F841 - Qt needs an application object
+    lines: list[str] = []
+    t0 = time.time()
+    try:
+        found = scan_network(threading.Event(), on_status=lines.append)
+        lines.append(f"found: {[(f.address, f.kind) for f in found]} in {time.time() - t0:.1f}s")
+        lines.append("RESULT: " + ("PASS" if found else "NONE FOUND"))
+        code = 0 if found else 1
+    except Exception as e:  # noqa: BLE001
+        lines.append(f"ERROR: {e}")
+        lines.append("RESULT: FAIL")
+        code = 1
+    (data_dir() / "scantest.txt").write_text("\n".join(lines), encoding="utf-8")
+    return code
+
+
 def main() -> int:
     setup_logging()
     log = get_logger("app")
     if "--selftest" in sys.argv:
         return selftest()
+    if "--scantest" in sys.argv:
+        return scantest()
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setOrganizationName(APP_ID)

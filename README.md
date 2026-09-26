@@ -23,13 +23,13 @@
 - **MP4 screen recording** without re-encoding, so it costs almost no CPU.
 - **Clipboard sync** both ways, plus screenshots and full-screen mode.
 - **Drag and drop**: drop an `.apk` to install it, or any file to send it to the phone's Download folder.
-- **Guided setup**: finds the phone on your network automatically, one-click connect, plain-language error messages, automatic reconnect.
+- **Guided setup**: finds the phone on your network automatically (mDNS, plus a **network scanner** for when discovery is blocked), one-click connect, plain-language error messages, automatic reconnect.
 - **Quality presets** (Balanced, Sharp, Smooth, Data saver, Custom) and an optional **desktop mode** with its own virtual display.
 - **Phone details** at a glance: model, Android version, battery.
 
-| Connect and settings | No phone found yet |
+| Connect and settings | Network scanner |
 |---|---|
-| <img src="docs/images/settings.png" alt="Connect and settings panels" width="380"> | <img src="docs/images/empty.png" alt="Empty state with setup hints" width="380"> |
+| <img src="docs/images/settings.png" alt="Connect and settings panels" width="380"> | <img src="docs/images/scan.png" alt="Scan network dialog" width="380"> |
 
 ## Quick start
 
@@ -61,6 +61,7 @@ adb.py: pairing, connect, mDNS discovery, file/APK transfer
 | Path | Purpose |
 |---|---|
 | `mirrorshark/adb.py` | adb wrapper, bundled-tool installer, mDNS discovery |
+| `mirrorshark/scanner.py` | network scanner: finds phones with wireless debugging without mDNS |
 | `mirrorshark/server.py` | pushes/starts the scrcpy server, opens video, audio and control sockets |
 | `mirrorshark/protocol.py` | wire format encode/decode (unit tested) |
 | `mirrorshark/video.py`, `audio.py`, `recorder.py` | decoding, playback, MP4 recording |
@@ -81,7 +82,7 @@ Requires Python 3.12+ on Windows.
 .\run.bat          # or run from source (creates .venv on first run)
 ```
 
-Tests: `.venv\Scripts\python -m pytest`. Smoke test a build against a connected phone: `dist\MirrorShark.exe --selftest` (writes `%LOCALAPPDATA%\MirrorShark\selftest.txt`).
+Tests: `.venv\Scripts\python -m pytest`. Smoke test a build against a connected phone: `dist\MirrorShark.exe --selftest` (mirroring) or `--scantest` (network scanner; result in `%LOCALAPPDATA%\MirrorShark\scantest.txt`) (writes `%LOCALAPPDATA%\MirrorShark\selftest.txt`).
 
 The scrcpy server version must match `SERVER_VERSION` in `mirrorshark/protocol.py` (currently 4.1).
 
