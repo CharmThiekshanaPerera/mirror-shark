@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  *
  * Protocol: one JSON object per line over TCP, one request per connection.
  *   {"cmd":"hello"}                     -> {"app":"MirrorSharkHelper","v":1,"name":..,"adb_wifi":0|1,"can_enable":bool}
- *   {"cmd":"enable","pc":"CHARMZ"}      -> asks the user; replies {"status":"enabled|declined|needs_manual|busy|cooldown|timeout|failed"}
+ *   {"cmd":"enable","pc":"CHARMZ","purpose":"screen"} -> asks the user; replies {"status":"enabled|declined|needs_manual|busy|cooldown|timeout|failed"}
  * Nothing is ever changed without the user tapping Accept on this phone.
  */
 public class HelperService extends Service {
@@ -49,10 +49,13 @@ public class HelperService extends Service {
         final int id;
         final String pc;
         final String ip;
+        final boolean screenShare;
         final CountDownLatch latch = new CountDownLatch(1);
         volatile boolean accepted;
 
-        Pending(int id, String pc, String ip) { this.id = id; this.pc = pc; this.ip = ip; }
+        Pending(int id, String pc, String ip, boolean screenShare) {
+            this.id = id; this.pc = pc; this.ip = ip; this.screenShare = screenShare;
+        }
     }
 
     private ServerSocket server;
@@ -118,7 +121,8 @@ public class HelperService extends Service {
                 reply.put("adb_wifi", wirelessDebuggingOn() ? 1 : 0);
                 reply.put("can_enable", canWriteSecureSettings());
             } else if ("enable".equals(cmd)) {
-                reply.put("status", handleEnable(req.optString("pc", "A computer"), addressOf(sock)));
+                reply.put("status", handleEnable(req.optString("pc", "A computer"), addressOf(sock),
+                        "screen".equals(req.optString("purpose"))));
             } else {
                 return;
             }
@@ -134,13 +138,13 @@ public class HelperService extends Service {
         return a == null ? "?" : a.getHostAddress();
     }
 
-    private String handleEnable(String pc, String ip) throws InterruptedException {
+    private String handleEnable(String pc, String ip, boolean screenShare) throws InterruptedException {
         pc = pc.length() > 40 ? pc.substring(0, 40) : pc;
         Pending mine;
         synchronized (LOCK) {
             if (System.currentTimeMillis() < cooldownUntil) return "cooldown";
             if (pending != null) return "busy";
-            mine = new Pending(nextId++, pc, ip);
+            mine = new Pending(nextId++, pc, ip, screenShare);
             pending = mine;
         }
         showRequestNotification(mine);
@@ -216,13 +220,16 @@ public class HelperService extends Service {
     private void showRequestNotification(Pending p) {
         Notification.Action accept = new Notification.Action.Builder(null, "Accept", decisionIntent(p.id, true)).build();
         Notification.Action decline = new Notification.Action.Builder(null, "Decline", decisionIntent(p.id, false)).build();
+        String title = p.screenShare ? p.pc + " wants to share your screen" : p.pc + " wants to turn on Wireless debugging";
+        String what = p.screenShare
+                ? "Accepting turns on Wireless debugging so " + p.pc + " can show and control this phone's screen."
+                : "Wireless debugging lets " + p.pc + " mirror and control this phone.";
         Notification n = new Notification.Builder(this, CH_REQUEST)
                 .setSmallIcon(R.drawable.ic_stat)
-                .setContentTitle(p.pc + " wants to turn on Wireless debugging")
+                .setContentTitle(title)
                 .setContentText("Request from " + p.ip + ". Accept only if this is your own computer.")
-                .setStyle(new Notification.BigTextStyle().bigText("Request from " + p.ip + " (" + p.pc
-                        + "). Wireless debugging lets that computer mirror and control this phone. "
-                        + "Accept only if it is your own computer."))
+                .setStyle(new Notification.BigTextStyle().bigText("Request from " + p.ip + " (" + p.pc + "). " + what
+                        + " Accept only if this is your own computer."))
                 .setCategory(Notification.CATEGORY_MESSAGE)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setTimeoutAfter(ANSWER_TIMEOUT_MS)

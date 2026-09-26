@@ -42,5 +42,7 @@ def test_model_name_dedupes_brand():
 def test_friendly_errors():
     assert "refused" in friendly("failed to connect: 10061 actively refused").lower()
     assert "unlock the phone" in friendly("device unauthorized").lower()
+    assert "not trust this PC" in friendly("failed to connect to 192.168.8.131:41239")
+    assert "Could not reach" in friendly("cannot connect to 192.168.8.5:5555: No route to host")
     assert friendly("something odd") == "something odd"
     assert friendly("") == "Unknown error"

@@ -1,5 +1,6 @@
 """Main window: find/pair/connect phones and start mirroring."""
 import os
+import time
 
 from PySide6.QtCore import QSettings, Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
@@ -77,6 +78,7 @@ class MainWindow(QWidget):
         self.network = NetworkPanel(self.adb)
         self.network.connected.connect(self._network_connected)
         self.network.mirror_requested.connect(self.mirror_ip)
+        self.network.share_connected.connect(self._share_connected)
         self.body_layout.addWidget(self.network)
         self.connect_section = Collapsible("Connect a new phone", self._build_connect(), expanded=False)
         self.body_layout.addWidget(self.connect_section)
@@ -334,7 +336,31 @@ class MainWindow(QWidget):
 
         run_task(work, done, failed)
 
+    def _reachable(self, services):
+        """Drop mDNS entries whose address is not on one of this PC's networks (e.g. a phone that advertises an
+        internal 10.0.2.x address): they cannot be connected to and only mislead."""
+        import ipaddress
+        if not hasattr(self, "_nets") or time.monotonic() - self._nets_at > 60:
+            try:
+                from ..scanner import local_subnets
+                self._nets = [n for _, n in local_subnets()]
+            except Exception:  # noqa: BLE001 - keep everything if the network list is unavailable
+                self._nets = []
+            self._nets_at = time.monotonic()
+        if not self._nets:
+            return list(services)
+        keep = []
+        for s in services:
+            try:
+                ip = ipaddress.ip_address(s.address.rpartition(":")[0])
+            except ValueError:
+                continue
+            if any(ip in n for n in self._nets):
+                keep.append(s)
+        return keep
+
     def _show_devices(self, devices, services) -> None:
+        services = self._reachable(services)
         addr_by_name = {s.name: s.address for s in services if s.kind == "connect"}
         key = ([(d.serial, d.state) for d in devices], [(s.name, s.kind, s.address) for s in services],
                set(self._starting), sorted((k, v.get("battery"), v.get("charging")) for k, v in self._info.items()))
@@ -379,8 +405,10 @@ class MainWindow(QWidget):
             ip = addr.rpartition(":")[0]
             if ip and ip not in self._ip_serial:
                 self._ip_serial[ip] = d.serial
-        self.network.set_adb_state(set(self._ip_serial), {s.address.rpartition(":")[0]: int(s.address.rpartition(":")[2])
-                                                          for s in services if s.kind == "connect"})
+        self.network.set_adb_state(
+            set(self._ip_serial),
+            {s.address.rpartition(":")[0]: int(s.address.rpartition(":")[2]) for s in services if s.kind == "connect"},
+            {s.address.rpartition(":")[0]: int(s.address.rpartition(":")[2]) for s in services if s.kind == "pairing"})
         self.empty.setVisible(not devices)
         if not devices:
             self.connect_section.set_expanded(True)
@@ -456,6 +484,19 @@ class MainWindow(QWidget):
         self.say(f"Connected to {address}")
         self._last_devices = None
         self.refresh()
+
+    def _share_connected(self, ip: str, tries: int = 0) -> None:
+        """A phone accepted a screen-share request and is now connected: open its mirror as soon as it is listed."""
+        serial = self._ip_serial.get(ip)
+        if serial:
+            self.start_mirroring(serial)
+            return
+        if tries >= 15:
+            self.say("Connected, but the phone did not appear in the list yet. Press Mirror on it.", error=True)
+            return
+        self._last_devices = None
+        self.refresh()
+        QTimer.singleShot(700, lambda: self._share_connected(ip, tries + 1))
 
     def mirror_ip(self, ip: str) -> None:
         serial = self._ip_serial.get(ip)

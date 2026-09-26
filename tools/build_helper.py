@@ -104,7 +104,7 @@ def main() -> None:
     aligned = WORK / "aligned.apk"
     run(zipalign, "-f", "-p", "4", str(unsigned), str(aligned))
     OUT.parent.mkdir(exist_ok=True)
-    run(apksigner, "sign", "--ks", str(debug_keystore()), "--ks-pass", "pass:android", "--out", str(OUT), str(aligned))
+    run(apksigner, "sign", "--ks", str(debug_keystore()), "--ks-pass", "pass:android", "--v4-signing-enabled", "false", "--out", str(OUT), str(aligned))
     print(f"Built {OUT} ({OUT.stat().st_size:,} bytes)")
 
 

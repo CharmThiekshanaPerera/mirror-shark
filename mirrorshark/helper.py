@@ -70,13 +70,14 @@ def probe(host: str, port: int = HELPER_PORT, timeout: float = 0.8) -> HelperInf
     return HelperInfo(str(r.get("name", "")), bool(r.get("adb_wifi")), bool(r.get("can_enable")), int(r.get("v", 1)))
 
 
-def request_enable(host: str, pc_name: str | None = None, port: int = HELPER_PORT, wait: float = REQUEST_WAIT) -> str:
+def request_enable(host: str, pc_name: str | None = None, port: int = HELPER_PORT, wait: float = REQUEST_WAIT,
+                   purpose: str = "screen") -> str:
     """Ask the phone to turn on Wireless debugging. Blocks until the owner answers (or `wait` seconds pass).
 
     Returns one of the keys of STATUS_TEXT.
     """
     pc = pc_name or socket.gethostname()
-    reply, connected = _exchange(host, {"cmd": "enable", "pc": pc}, port, 3.0, wait)
+    reply, connected = _exchange(host, {"cmd": "enable", "pc": pc, "purpose": purpose}, port, 3.0, wait)
     if not connected:
         status = "unreachable"
     elif reply is None:

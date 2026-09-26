@@ -72,7 +72,7 @@ def test_probe_rejects_other_services(phone):
 def test_request_enable_passes_status_through(phone, status):
     p = phone({"enable": {"status": status}})
     assert helper.request_enable("127.0.0.1", "TEST-PC", port=p.port, wait=5) == status
-    assert p.requests == [{"cmd": "enable", "pc": "TEST-PC"}]
+    assert p.requests == [{"cmd": "enable", "pc": "TEST-PC", "purpose": "screen"}]
 
 
 def test_request_enable_unknown_status_is_failed(phone):

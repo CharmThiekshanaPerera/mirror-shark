@@ -25,8 +25,13 @@ _RULES = [
      "and try again. Details are in the log (Help > Open log)."),
     (("timed out waiting for the scrcpy server",),
      "The phone did not start the mirroring service in time. Unlock the phone and try again."),
-    (("cannot connect", "failed to connect", "no route", "unreachable"),
+    (("cannot connect", "no route", "unreachable"),
      "Could not reach the phone. Check the IP address and port, and that both devices share the same network."),
+    # adb prints just "failed to connect to <ip>:<port>" when the phone answered but rejected this PC's key
+    (("failed to connect to",),
+     "The phone answered but does not trust this PC yet, so it has not been paired. Pair it once: on the phone open "
+     "Wireless debugging > Pair device with pairing code, then enter the code in Mirror Shark (Pair…). If the phone was "
+     "paired before, Wireless debugging may have been switched off and on, which changes its port."),
 ]
 
 

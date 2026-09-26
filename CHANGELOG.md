@@ -2,6 +2,21 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.7.0] - 2026-09-26
+
+### Added
+- **Request screen share**: one button on a phone that is not connected. It sends the phone a request ("<PC> wants to share your screen"); when the owner taps **Accept**, Wireless debugging is switched on, Mirror Shark connects to the phone and opens its mirror window with full control, all without further clicks (if the phone was paired before).
+- The button is shown for every phone-like device whose wireless debugging is off. On a phone that does not have Mirror Shark Helper yet it explains the one-time setup instead of doing nothing.
+
+### Changed
+- The "Ask phone to turn on" button became **Request screen share**, and its texts and the phone's notification now speak about sharing the screen.
+- Mirror Shark Helper 1.1: the request notification says what accepting does.
+
+### Fixed
+- **Connecting to a phone that was never paired** showed "Could not reach the phone" while the row kept saying "Wireless debugging ON". Mirror Shark now recognises this case (the phone answers but rejects this PC's key, which ADB only reports as "failed to connect"): the row shows **Not paired**, explains what to do, and has a **Pair…** button that asks for the pairing address (filled in automatically when the phone's pairing screen is open) and the 6-digit code, then connects.
+- Phones that advertise an unreachable internal address over mDNS (for example `10.0.2.x`) no longer appear as a "Found on network" connect suggestion.
+- The APK signature side file (`.idsig`) is no longer generated or tracked in the repository.
+
 ## [1.6.0] - 2026-09-26
 
 ### Added
