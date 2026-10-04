@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (QCheckBox, QDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar,
                                QPushButton, QVBoxLayout, QWidget)
 
+from .. import devices_store as store
 from .. import helper as helper_mod
 from .. import theme
 from ..adb import Adb
@@ -28,6 +29,7 @@ HINT_UNPAIRED = ("Wireless debugging is on, but this phone has not been paired w
                  "phone open Wireless debugging › Pair device with pairing code, then press Pair… here and enter the code.")
 HINT_OFF_OTHER = "No wireless debugging found on this device."
 AUTO_REFRESH_MS = 90_000
+_ago = store.format_age
 
 
 class DiscoverThread(QThread):
@@ -104,6 +106,7 @@ class NetRow(QFrame):
     mirror_clicked = Signal(str)    # ip
     request_clicked = Signal(str)   # ip
     pair_clicked = Signal(str)      # ip
+    save_toggled = Signal(str, bool)  # ip, now_saved
 
     def __init__(self, dev: NetDevice):
         super().__init__()
@@ -111,6 +114,7 @@ class NetRow(QFrame):
         self.helper = None
         self.port: int | None = None
         self.state = "unchecked"
+        self.saved = False
         self.setObjectName("deviceRow")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(14, 10, 14, 10)
@@ -130,6 +134,13 @@ class NetRow(QFrame):
         text.addWidget(title)
         text.addWidget(sub)
         top.addLayout(text, 1)
+        self.save_btn = QPushButton("☆")
+        self.save_btn.setObjectName("tool")   # padding: 0 - a fixed-width button needs room for the glyph, not 16px padding
+        self.save_btn.setFixedSize(30, 30)
+        self.save_btn.clicked.connect(self._toggle_save)
+        self.save_btn.setVisible(not dev.is_this_pc and not dev.is_gateway and bool(dev.mac))
+        top.addWidget(self.save_btn)
+        self.set_saved(False)
         self.helper_badge = Badge("Helper ready", theme.GOOD)
         self.helper_badge.setToolTip("Mirror Shark Helper is running on this phone, so you can send it a screen-share request.")
         self.helper_badge.hide()
@@ -165,6 +176,18 @@ class NetRow(QFrame):
         outer.addWidget(self.hint)
         self.set_state("self" if dev.is_this_pc else "unchecked")
 
+    def set_saved(self, saved: bool) -> None:
+        self.saved = saved
+        self.save_btn.setText("★" if saved else "☆")
+        self.save_btn.setStyleSheet(f"color: {theme.ACCENT}; border-color: {theme.ACCENT};" if saved else "")
+        self.save_btn.setToolTip(
+            "Saved. Mirror Shark remembers this device and checks it first on every scan. Click to forget."
+            if saved else "Save this device so Mirror Shark remembers and prioritises it next time.")
+
+    def _toggle_save(self) -> None:
+        self.set_saved(not self.saved)
+        self.save_toggled.emit(self.dev.ip, self.saved)
+
     def set_helper(self, info) -> None:
         self.helper = info
         self.helper_badge.setVisible(info is not None)
@@ -172,8 +195,10 @@ class NetRow(QFrame):
 
     def set_state(self, state: str, port: int | None = None) -> None:
         self.state = state
-        if port is not None or state in ("unchecked", "off", "self"):
-            self.port = port
+        if port is not None:
+            self.port = port             # remember it even across later calls that don't pass a port
+        elif state in ("unchecked", "off", "self"):
+            self.port = None             # these mean "we don't know the port (yet)"
         self.hint.hide()
         self.check_btn.setVisible(state in ("unchecked", "off", "unpaired"))
         self.pair_btn.setVisible(state == "unpaired")
@@ -289,6 +314,7 @@ class NetworkPanel(QFrame):
         self._probe: ProbeThread | None = None
         self._discover: DiscoverThread | None = None
         self._last_discovery = 0.0
+        self._saved: dict[str, store.SavedDevice] = store.load()
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 14, 16, 14)
@@ -325,6 +351,14 @@ class NetworkPanel(QFrame):
         self.list_layout.setSpacing(8)
         lay.addLayout(self.list_layout)
 
+        self.offline_header = QLabel("Saved, not on this network right now")
+        self.offline_header.setObjectName("muted")
+        self.offline_header.hide()
+        lay.addWidget(self.offline_header)
+        self.offline_layout = QVBoxLayout()
+        self.offline_layout.setSpacing(8)
+        lay.addLayout(self.offline_layout)
+
         opts = QHBoxLayout()
         self.auto = QCheckBox("Connect automatically to a phone with wireless debugging")
         self.auto.setChecked(True)
@@ -347,7 +381,7 @@ class NetworkPanel(QFrame):
             if row.dev.is_this_pc or row.state in ("checking", "connecting"):
                 continue
             if ip in self._connected:
-                row.set_state("connected")
+                row.set_state("connected", self._mdns.get(ip))
             elif row.state == "connected":  # was connected, now gone
                 row.set_state("on", self._mdns[ip]) if ip in self._mdns else row.set_state("unchecked")
             elif ip in self._mdns and row.state in ("unchecked", "off", "unpaired"):
@@ -397,18 +431,21 @@ class NetworkPanel(QFrame):
             row.mirror_clicked.connect(self.mirror_requested)
             row.request_clicked.connect(self.request_enable)
             row.pair_clicked.connect(self.pair_ip)
+            row.save_toggled.connect(self._on_save_toggled)
             self.rows[dev.ip] = row
             self.list_layout.addWidget(row)
             if dev.is_this_pc:
                 continue
+            is_saved = bool(dev.mac) and dev.mac.lower() in self._saved
+            row.set_saved(is_saved)
             if dev.ip in self._connected:
-                row.set_state("connected")
+                row.set_state("connected", self._mdns.get(dev.ip))
             elif dev.ip in self._mdns:
                 row.set_state("on", self._mdns[dev.ip])         # announced itself: no port scan needed
             elif dev.ip in self._memory:
                 state, port = self._memory[dev.ip]
                 row.set_state(state, port)
-            elif dev.phone_like:
+            elif dev.phone_like or is_saved:   # a saved device is worth checking even if it looks like a router/PC
                 self._enqueue(dev.ip)
         del old
         others = [d for d in devices if not d.is_this_pc]
@@ -418,7 +455,92 @@ class NetworkPanel(QFrame):
         self.bar.setValue(1 if not self._probe.idle else 0)
         self.refresh_btn.setEnabled(True)
         self.stop_btn.setEnabled(not self._probe.idle)
+        self._render_offline({d.mac.lower() for d in others if d.mac})
         self._maybe_auto_connect()
+
+    def _render_offline(self, seen_macs: set[str]) -> None:
+        """Saved devices not seen in the latest scan: kept visible (not lost), with Forget and a best-effort connect."""
+        while self.offline_layout.count():
+            w = self.offline_layout.takeAt(0).widget()
+            if w:
+                w.deleteLater()
+        missing = [d for mac, d in self._saved.items() if mac not in seen_macs]
+        missing.sort(key=lambda d: -d.last_seen_at)
+        self.offline_header.setVisible(bool(missing))
+        for d in missing:
+            self.offline_layout.addWidget(self._offline_row(d))
+
+    def _offline_row(self, d: "store.SavedDevice") -> QFrame:
+        f = QFrame()
+        f.setObjectName("deviceRow")
+        row = QHBoxLayout(f)
+        row.setContentsMargins(14, 10, 14, 10)
+        icon = QLabel("📱")
+        icon.setStyleSheet("font-size: 22px; background: transparent;")
+        row.addWidget(icon)
+        text = QVBoxLayout()
+        text.setSpacing(0)
+        title = QLabel(d.name or d.mac)
+        title.setObjectName("sectionTitle")
+        age = time.time() - d.last_seen_at if d.last_seen_at else None
+        sub = QLabel(f"{d.mac} · last seen {_ago(age)}" + (f" at {d.last_ip}" if d.last_ip else ""))
+        sub.setObjectName("muted")
+        sub.setWordWrap(True)
+        sub.setMinimumWidth(0)
+        text.addWidget(title)
+        text.addWidget(sub)
+        row.addLayout(text, 1)
+        badge = Badge("Not on this network", theme.MUTED)
+        row.addWidget(badge)
+        if d.last_ip and d.last_port:
+            try_btn = QPushButton("Try to connect")
+            try_btn.setObjectName("primary")
+            try_btn.clicked.connect(lambda: self._try_offline_connect(d))
+            row.addWidget(try_btn)
+        forget_btn = QPushButton("Forget")
+        forget_btn.clicked.connect(lambda: self._forget(d.mac))
+        row.addWidget(forget_btn)
+        return f
+
+    def _try_offline_connect(self, d: "store.SavedDevice") -> None:
+        address = f"{d.last_ip}:{d.last_port}"
+        self._set_status(f"Trying the last known address for {d.name or d.mac} ({address})… It may have changed since "
+                         "wireless debugging was last turned on.")
+
+        def ok(_):
+            self._set_status(f"Connected to {address}.", good=True)
+            self.connected.emit(address)
+            self.start_discovery()
+
+        def bad(msg):
+            self._set_status(friendly(msg).split("\n\nDetails")[0]
+                             + " Press Refresh once the phone's Wireless debugging screen is open - Mirror Shark will "
+                               "find its current address automatically.", error=True)
+
+        run_task(lambda: self.adb.connect(address), ok, bad)
+
+    def _forget(self, mac: str) -> None:
+        store.remove(mac)
+        self._saved = store.load()
+        row = next((r for r in self.rows.values() if r.dev.mac and r.dev.mac.lower() == mac), None)
+        if row:
+            row.set_saved(False)
+        self._render_offline({ip_row.dev.mac.lower() for ip_row in self.rows.values() if ip_row.dev.mac})
+        self._set_status("Removed from saved devices.")
+
+    def _on_save_toggled(self, ip: str, saved: bool) -> None:
+        row = self.rows.get(ip)
+        if not row or not row.dev.mac:
+            return
+        mac = row.dev.mac.lower()
+        if saved:
+            store.upsert(mac, name=row.dev.title, last_ip=row.dev.ip, last_port=row.port or 0)
+            self._set_status(f"Saved {row.dev.title}. Mirror Shark will check it first and remember it even if it "
+                             "leaves the network.", good=True)
+        else:
+            store.remove(mac)
+            self._set_status(f"{row.dev.title} will no longer be remembered.")
+        self._saved = store.load()
 
     # -- probing --------------------------------------------------------------------------------------------
     def _new_probe(self) -> ProbeThread:
@@ -584,9 +706,16 @@ class NetworkPanel(QFrame):
         if self._connecting or not self.auto.isChecked() or self._connected:
             return
         ready = [r for r in self.rows.values() if r.state == "on" and r.dev.ip not in self._auto_tried]
+        if not ready:
+            return
         if len(ready) == 1:
             self._auto_tried.add(ready[0].dev.ip)
             self.connect_ip(ready[0].dev.ip)
+            return
+        saved_ready = [r for r in ready if r.saved]
+        if len(saved_ready) == 1:   # several phones are on, but only one is a device we recognise: prefer it
+            self._auto_tried.add(saved_ready[0].dev.ip)
+            self.connect_ip(saved_ready[0].dev.ip)
 
     def connect_ip(self, ip: str) -> None:
         row = self.rows.get(ip)
@@ -599,10 +728,17 @@ class NetworkPanel(QFrame):
 
         def ok(_):
             self._connecting = False
-            row.set_state("connected")
+            row.set_state("connected", port)
             self._connected.add(ip)
             self._set_status(f"Connected to {address}.", good=True)
             self.connected.emit(address)
+            if row.dev.mac:   # remember it automatically, so next time it is prioritised and auto-connected
+                mac = row.dev.mac.lower()
+                was_saved = mac in self._saved
+                store.upsert(mac, name=row.dev.title, last_ip=ip, last_port=port)
+                self._saved = store.load()
+                if not was_saved:
+                    row.set_saved(True)
             if ip in self._share_after:
                 self._share_after.discard(ip)
                 self.share_connected.emit(ip)

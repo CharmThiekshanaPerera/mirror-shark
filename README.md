@@ -24,6 +24,7 @@
 - **Clipboard sync** both ways, plus screenshots and full-screen mode.
 - **Drag and drop**: drop an `.apk` to install it, or any file to send it to the phone's Download folder.
 - **Guided setup**: finds the phone on your network automatically (mDNS, plus a **Devices on your Wi-Fi** dashboard panel that lists everything on your network and checks which phones can be connected), one-click connect, plain-language error messages, automatic reconnect.
+- **Save a device** (★): once paired, a phone is remembered by its MAC address and auto-connected whenever it's seen again - no re-entering the pairing code, even after a restart or a new IP/port.
 - **Request screen share**: with the small **Mirror Shark Helper** app on the phone, press one button on the PC. The phone shows "wants to share your screen: Accept / Decline"; when you accept, Wireless debugging switches on, Mirror Shark connects and the mirror opens.
 - **Quality presets** (Balanced, Sharp, Smooth, Data saver, Custom) and an optional **desktop mode** with its own virtual display.
 - **Phone details** at a glance: model, Android version, battery.

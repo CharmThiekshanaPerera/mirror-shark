@@ -2,6 +2,15 @@
 
 All notable changes are listed here. Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow [SemVer](https://semver.org/).
 
+## [1.8.0] - 2026-10-04
+
+### Added
+- **Save device**: a star button (☆ / ★) on every phone row in *Devices on your Wi-Fi*. A saved device is checked first on every scan, auto-connected as soon as it is seen, and kept visible (with its MAC address, last known IP, and "last seen" time) even when it is not currently on the network - with a one-click **Try to connect** and **Forget**. Connecting to any device also saves it automatically, so devices you have used before are remembered without an extra click.
+- Saving is tied to the phone's MAC address, not its IP, so it survives DHCP handing out a new address or Wireless debugging's connect port changing. It does **not** replace Android's own pairing trust: if the phone's own paired-device list forgets this PC (not something Mirror Shark controls), one re-pair (via **Pair…**) is still needed, but only once.
+
+### Fixed
+- A device already shown as **Connected** when its row was first created (common right after Mirror Shark starts) never recorded its port, which also meant a saved device could be stored with no reconnect address. Connected rows now carry their port correctly.
+
 ## [1.7.0] - 2026-09-26
 
 ### Added

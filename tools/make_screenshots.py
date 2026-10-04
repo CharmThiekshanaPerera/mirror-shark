@@ -51,6 +51,7 @@ def step1():
     w.network.rows["192.168.1.31"].set_helper(HelperInfo("Samsung Galaxy Tab A8", False, True, 1))
     w.network.rows["192.168.1.31"].set_state("off")
     w.network.rows["192.168.1.42"].set_state("off")
+    w.network.rows["192.168.1.20"].set_saved(True)
     w.network._set_status("5 devices on your Wi-Fi.")
     w.resize(660, 1080)
     QTimer.singleShot(300, lambda: (shot("main.png"), step2()))

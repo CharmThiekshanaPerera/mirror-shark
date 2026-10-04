@@ -56,6 +56,18 @@ If pressing **Connect** on a phone that shows **ON** fails, the row changes to *
 
 Only your own local network is scanned, and only the ADB service is checked. Phones that use a private (random) Wi-Fi address may show without a name.
 
+### Save a device, so you don't have to pair it every time
+
+Every phone row has a star button (☆) next to its name. Click it to save that phone - it turns into ★. Saved devices are:
+
+- **Checked first** on every scan, ahead of other devices.
+- **Connected automatically** the moment Mirror Shark sees them on the network, with nothing to click.
+- **Never lost**, even when the phone is off your Wi-Fi: it stays listed under *Saved, not on this network right now*, with its MAC address and when it was last seen, so you always know it is still remembered. From there, **Try to connect** attempts its last known address, and **Forget** removes it.
+
+You don't even need to click the star yourself: connecting to any phone saves it automatically, so a phone you have used before needs no extra step next time - as long as Wi-Fi is on and Wireless debugging is on, Mirror Shark finds and connects to it by itself.
+
+**What saving can and cannot do.** Saving is about *this PC remembering which phone to look for* - it matches by the phone's MAC address, so it survives the phone getting a new IP address or a new Wireless debugging port (both change often). It cannot change how Android's own pairing works: pairing trust lives on the phone, in its own list of paired computers, and only the code shown on the phone's pairing screen can grant it. If that trust is ever lost on the phone's side (for example, after certain OS updates, or if you remove this PC from the phone's paired-devices list), the row shows **Not paired** and you pair once with **Pair…** - after that, it goes back to working without typing anything again.
+
 ### Request screen share (Mirror Shark Helper)
 
 Android does not allow a computer to switch Wireless debugging on by itself. To make this easy anyway, Mirror Shark has a small companion app for the phone, **Mirror Shark Helper**. With it you can send a phone a **screen-share request**: the phone's owner taps **Accept**, and Mirror Shark does the rest.
